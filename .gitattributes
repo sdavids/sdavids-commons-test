@@ -1,0 +1,21 @@
+# https://git-scm.com/docs/gitattributes#__code_text_code
+* text=auto
+
+# https://git-scm.com/docs/gitattributes#__code_whitespace_code
+* whitespace=tab-in-indent,trailing-space,tabwidth=2
+
+.travis.yml     text
+.gitignore      text
+*.gitattributes text
+LICENSE         text
+AUTHORS         text
+NOTICE          text
+CONTRIBUTORS    text
+*.adoc          text
+*.txt           text
+*.bat           text eol=crlf
+*.java          text diff=java
+*.gradle        text
+*.properties    text
+*.class         binary
+*.jar           binary

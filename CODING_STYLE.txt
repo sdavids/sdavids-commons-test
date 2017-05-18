@@ -1,0 +1,3 @@
+sdavids-commons-test uses the Google Java Style (https://github.com/google/styleguide) for all code.
+
+Be sure to set text file encoding to UTF-8 and line delimiters to UNIX style.

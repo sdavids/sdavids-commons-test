@@ -1,0 +1,370 @@
+/*
+ * Copyright (c) 2017, Sebastian Davids
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+import static java.io.File.createTempFile
+import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import static java.time.OffsetDateTime.now
+import static java.time.ZoneOffset.UTC
+import static java.time.format.DateTimeFormatter.ISO_DATE_TIME
+
+import java.nio.file.Files
+import java.nio.file.Path
+import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
+
+buildscript {
+  repositories {
+    mavenLocal()
+    jcenter()
+  }
+
+  // https://bintray.com/bintray/jcenter
+  dependencies {
+    classpath 'de.thetaphi:forbiddenapis:2.3'
+  }
+}
+
+// https://plugins.gradle.org/
+plugins {
+  id 'org.dm.bundle' version '0.10.0'
+  id 'de.fuerstenau.buildconfig' version '1.1.8'
+  id 'net.nemerosa.versioning' version '2.6.0'
+  id 'com.diffplug.gradle.spotless' version '3.3.2'
+  id 'net.ltgt.errorprone' version '0.0.10'
+  id 'com.github.ben-manes.versions' version '0.14.0'
+  id 'com.jfrog.bintray' version '1.7.3'
+}
+
+ext {
+  // https://bintray.com/bintray/jcenter
+  errorproneVersion = '2.0.19'
+  jsr305Version = '3.0.2'
+  junitVersion = '4.12'
+  assertjVersion = '3.7.0'
+
+  now = now(UTC)
+  nowIsoDateTime = now.format(ISO_DATE_TIME)
+  buildJdk = "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})"
+}
+
+group 'io.sdavids.commons.test'
+version = '1.0.0'
+
+repositories {
+  mavenLocal()
+  jcenter()
+}
+
+apply plugin: 'java-library'
+apply plugin: 'net.ltgt.errorprone'
+apply plugin: 'de.thetaphi.forbiddenapis'
+apply plugin: 'com.diffplug.gradle.spotless'
+apply plugin: 'maven'
+apply plugin: 'idea'
+
+dependencies {
+  errorprone "com.google.errorprone:error_prone_core:${errorproneVersion}"
+
+  compileOnly "com.google.code.findbugs:jsr305:${jsr305Version}"
+
+  testCompile "junit:junit:${junitVersion}"
+  testCompile "org.assertj:assertj-core:${assertjVersion}"
+}
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+compileJava.options.debugOptions.debugLevel = 'source,lines,vars'
+
+[compileJava, compileTestJava]*.options.collect { options ->
+  options.encoding = 'UTF-8'
+}
+
+[compileJava, compileTestJava]*.options.collect { options ->
+  options.debug = true
+  options.deprecation = true
+  options.warnings = true
+}
+
+// http://docs.oracle.com/javase/8/docs/technotes/tools/windows/javac.html#BHCJCABJ
+compileJava.options.collect { options ->
+  options.compilerArgs << '-parameters'
+  options.compilerArgs << '-Xlint:all,-processing,-path'
+  options.compilerArgs << '-Werror'
+}
+
+// http://docs.oracle.com/javase/8/docs/technotes/tools/windows/javac.html#BHCJCABJ
+compileTestJava.options.collect { options ->
+  options.compilerArgs << '-parameters'
+  options.compilerArgs << '-Xlint:all,-processing,-path'
+}
+
+buildConfig {
+  clsName = 'VersionInfo'
+  packageName = project.group
+  version = "${project.version}-${versioning.info.build}"
+  buildConfigField 'String', 'REVISION', versioning.info.commit
+  buildConfigField 'String', 'BUILD_JDK', buildJdk
+  buildConfigField 'java.time.OffsetDateTime', 'BUILD_TIME', "java.time.OffsetDateTime.parse(\"${nowIsoDateTime}\")"
+}
+
+jar {
+  manifest {
+    attributes(
+        'Created-By': "Gradle ${gradle.gradleVersion}",
+        'Built-By': project.author,
+        'Build-Jdk': buildJdk,
+        'Build-Time': nowIsoDateTime,
+        'Build-Revision': versioning.info.commit,
+        'Build-Host': "${InetAddress.localHost.hostName}",
+        'Specification-Title': project.name,
+        'Specification-Version': project.version,
+        'Implementation-Title': project.name,
+        'Implementation-Version': "${project.version}-${versioning.info.build}",
+        ("Version-${project.name}".toString().capitalize()): project.version,
+        ("Time-${project.name}".toString().capitalize()): nowIsoDateTime,
+        ("Revision-${project.name}".toString().capitalize()): versioning.info.commit
+    )
+  }
+}
+
+bundle {
+  instructions << [
+      'Bundle-License': 'http://www.apache.org/licenses/LICENSE-2.0.txt',
+      'Import-Package': 'javax.annotation;resolution:=optional,*',
+      'Export-Package': "${group}.*;-split-package:=merge-first"
+  ]
+}
+
+forbiddenApis {
+  // https://github.com/policeman-tools/forbidden-apis/wiki/BundledSignatures
+  bundledSignatures = [
+      'jdk-unsafe',
+      'jdk-deprecated',
+      'jdk-non-portable',
+      'jdk-system-out',
+      'jdk-reflection'
+  ]
+}
+
+spotless {
+  format 'misc', {
+    target '.gitattributes', '.gitignore', '**/*.gradle', '**/*.adoc', '**/*.txt',
+        'AUTHORS', 'CONTRIBUTORS', 'LICENSE', 'NOTICE'
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
+  format 'properties', {
+    target '**/*.properties'
+    encoding 'ISO-8859-1'
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
+  format 'yaml', {
+    target '**/*.yaml', '**/*.yml'
+    indentWithSpaces(2)
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
+  java {
+    googleJavaFormat('1.3')
+    licenseHeaderFile "${rootProject.projectDir}/gradle/spotless-license-java.txt"
+  }
+}
+
+task wrapper(type: Wrapper) {
+  gradleVersion = '3.5'
+  distributionType = DistributionType.ALL
+}
+
+task versionOnly {
+  group = 'Versioning'
+  description = 'Writes the project version on the standard output.'
+
+  doLast {
+    println version
+  }
+}
+
+tasks.withType(Test) { task ->
+  task.testLogging.exceptionFormat = 'full'
+}
+
+if (project.hasProperty('release')) {
+
+  apply plugin: 'signing'
+  apply plugin: 'maven-publish'
+
+  task javadocJar(type: Jar) {
+    from javadoc
+  }
+
+  task sourcesJar(type: Jar, dependsOn: compileJava) {
+    from sourceSets.main.allSource
+  }
+
+  task pack200JarPrepare(dependsOn: jar) {
+    doLast {
+      final archivePath = jar.archivePath.toPath()
+      final copyPath = archivePath.resolveSibling("${archivePath.fileName}.orig")
+
+      Files.copy(archivePath, copyPath, REPLACE_EXISTING, COPY_ATTRIBUTES)
+
+      ext.archivePath = archivePath
+      ext.copyPath = copyPath
+    }
+  }
+
+  task pack200JarExec(type: Exec, dependsOn: jar) {
+    commandLine 'pack200',
+        '--repack',
+        '--effort=9',
+        '--segment-limit=-1',
+        '--modification-time=latest',
+        jar.archivePath
+  }
+
+  task pack200JarFinalize(dependsOn: pack200JarPrepare) {
+    doLast {
+      final Path archivePath = pack200JarPrepare.ext.archivePath
+      final Path copyPath = pack200JarPrepare.ext.copyPath
+      final archiveSize = Files.size(archivePath)
+      final copySize = Files.size(copyPath)
+
+      if (archiveSize > copySize) {
+        Files.move(copyPath, archivePath, REPLACE_EXISTING)
+      } else {
+        Files.delete(copyPath)
+      }
+    }
+  }
+
+  task pack200Jar(dependsOn: [jar, pack200JarPrepare, pack200JarExec, pack200JarFinalize]) {
+    group = 'Build'
+    description = 'Transforms the created JAR file into a compressed pack200 JAR file.'
+  }
+
+  jar.finalizedBy pack200Jar
+  pack200JarExec.mustRunAfter pack200JarPrepare
+
+  javadoc.options.encoding = 'UTF-8'
+  javadoc.options.links 'https://docs.oracle.com/javase/8/docs/api/'
+
+  artifacts {
+    archives javadocJar, sourcesJar
+  }
+
+  signing {
+    sign configurations.archives
+  }
+
+  final pomConfig = {
+    name "${project.name}"
+    licenses {
+      license {
+        name 'Apache License, Version 2.0'
+        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+        distribution 'repo'
+      }
+    }
+    developers {
+      developer {
+        id 'sdavids'
+        name 'Sebastian Davids'
+        email 'sdavids@gmx.de'
+        timezone 'Europe/Berlin'
+      }
+    }
+    scm {
+      url 'https://github.com/sdavids/sdavids-commons-test'
+      connection 'scm:git:https://github.com/sdavids/sdavids-commons-test.git'
+    }
+    issueManagement {
+      system 'GitHub'
+      url 'https://github.com/sdavids/sdavids-commons-test/issues'
+    }
+  }
+
+  publishing {
+    publications {
+      mavenJava(MavenPublication) {
+        from components.java
+
+        artifact sourcesJar {
+          classifier 'sources'
+        }
+
+        artifact javadocJar {
+          classifier 'javadoc'
+        }
+
+        pom.withXml {
+          asNode().children().last() + pomConfig
+
+          // workaround
+          // "Signing the generated POM file generated by this plugin is currently not supported."
+          // https://docs.gradle.org/current/userguide/publishing_maven.html
+          final tmp = createTempFile("generated-pom", ".xml")
+          tmp.deleteOnExit()
+
+          writeTo(tmp)
+
+          final pomAscFile = signing.sign(tmp).signatureFiles[0]
+
+          artifact(pomAscFile) {
+            classifier = null
+            extension = 'pom.asc'
+          }
+
+          tmp.delete()
+          //
+        }
+
+        // workaround
+        // asc files not uploaded
+        project.tasks.signArchives.signatureFiles.each {
+          artifact(it) {
+            def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
+            classifier = matcher.find() ? matcher.group(1) : null
+            extension = 'jar.asc'
+          }
+        }
+        //
+      }
+    }
+  }
+
+  bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+    publications = ['mavenJava']
+    pkg {
+      repo = 'sdavids'
+      name = 'sdavids-commons-test'
+      licenses = ['Apache-2.0']
+      websiteUrl = 'https://github.com/sdavids/sdavids-commons-test'
+      issueTrackerUrl = 'https://github.com/sdavids/sdavids-commons-test/issues'
+      vcsUrl = 'https://github.com/sdavids/sdavids-commons-test.git'
+      githubRepo = 'sdavids/sdavids-commons-test'
+      publicDownloadNumbers = true
+      version {
+        name = "${project.version}"
+        vcsTag = "v${project.version}"
+      }
+    }
+  }
+}

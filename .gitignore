@@ -1,0 +1,70 @@
+### General ###
+temp/
+tmp/
+log/
+*.log
+*.tmp
+*.bck
+*.swp
+*.orig
+*.rej
+
+### Linux ###
+*~
+.directory
+.Trash-*
+
+### OSX ###
+.DS_Store
+._*
+# Icon must end with two \r
+Icon
+
+
+### Windows ###
+Thumbs.db
+Desktop.ini
+*.lnk
+
+### Build Directories/Intermediate Files ###
+bin/
+build/
+out/
+target/
+classes/
+
+### Package Files ###
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+
+### IntelliJ ###
+*.iml
+/.idea/
+
+### Eclipse ###
+.settings/
+.externalToolBuilders/
+.metadata
+.classpath
+.project
+.loadpath
+.recommenders
+.factorypath
+.buildpath
+.springBeans
+*.launch
+
+### JRebel ###
+rebel.xml
+
+### Java ###
+*.class
+
+### Gradle ###
+/.gradle/
+!/gradle/wrapper/gradle-wrapper.jar

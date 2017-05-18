@@ -1,0 +1,26 @@
+= sdavids-commons-test
+Sebastian Davids
+
+image::https://travis-ci.org/sdavids/sdavids-commons-test.svg?branch=master[Build Status]
+
+== Building from Source
+
+All modules can be build with Gradle using the following command:
+
+ $ ./gradlew clean assemble
+
+All modules can be tested with Gradle using the following command:
+
+ $ ./gradlew clean test
+
+Since Gradle has excellent incremental build support, one can usually omit executing the clean task.
+
+To stop the Gradle daemon execute:
+
+ $ ./gradlew --stop
+
+== Installing in Local Maven Repository
+
+All modules can be installed in a local Maven repository via the following command:
+
+ $ ./gradlew clean install
