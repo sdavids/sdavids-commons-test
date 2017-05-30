@@ -137,7 +137,8 @@ jar {
         'Implementation-Version': "${project.version}-${versioning.info.build}",
         ("Version-${project.name}".toString().capitalize()): project.version,
         ("Time-${project.name}".toString().capitalize()): nowIsoDateTime,
-        ("Revision-${project.name}".toString().capitalize()): versioning.info.commit
+        ("Revision-${project.name}".toString().capitalize()): versioning.info.commit,
+        'Automatic-Module-Name': 'io.sdavids.commons.test'
     )
   }
 }
