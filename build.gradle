@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 import static java.io.File.createTempFile
 import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING
@@ -50,6 +49,8 @@ plugins {
 }
 
 ext {
+  rootPackageName = 'io.sdavids.commons.test'
+
   // https://bintray.com/bintray/jcenter
   errorproneVersion = '2.0.19'
   jsr305Version = '3.0.2'
@@ -115,7 +116,7 @@ compileTestJava.options.collect { options ->
 
 buildConfig {
   clsName = 'VersionInfo'
-  packageName = project.group
+  packageName = rootPackageName
   version = "${project.version}-${versioning.info.build}"
   buildConfigField 'String', 'REVISION', versioning.info.commit
   buildConfigField 'String', 'BUILD_JDK', buildJdk
@@ -138,13 +139,15 @@ jar {
         ("Version-${project.name}".toString().capitalize()): project.version,
         ("Time-${project.name}".toString().capitalize()): nowIsoDateTime,
         ("Revision-${project.name}".toString().capitalize()): versioning.info.commit,
-        'Automatic-Module-Name': 'io.sdavids.commons.test'
+        'Automatic-Module-Name': rootPackageName
     )
   }
 }
 
 bundle {
   instructions << [
+      'Bundle-SymbolicName': rootPackageName,
+      'Bundle-Name': project.name,
       'Bundle-License': 'http://www.apache.org/licenses/LICENSE-2.0.txt',
       'Import-Package': 'javax.annotation;resolution:=optional,*',
       'Export-Package': "${group}.*;-split-package:=merge-first"
