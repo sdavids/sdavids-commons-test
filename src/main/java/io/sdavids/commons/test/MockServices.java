@@ -212,7 +212,7 @@ public final class MockServices {
    *
    * <p>Each mock service class must be public and have a public no-arg constructor.
    *
-   * @param services the mock services, not null
+   * @param services the mock services; not null
    * @since 1.0
    */
   public static void setServices(Class<?>... services) {
