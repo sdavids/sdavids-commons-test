@@ -52,7 +52,7 @@ ext {
   rootPackageName = 'io.sdavids.commons.test'
 
   // https://bintray.com/bintray/jcenter
-  errorproneVersion = '2.0.19'
+  errorproneVersion = '2.0.21'
   jsr305Version = '3.0.2'
   junitVersion = '4.12'
   assertjVersion = '3.8.0'
