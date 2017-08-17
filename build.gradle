@@ -221,10 +221,12 @@ if (project.hasProperty('release')) {
   apply plugin: 'maven-publish'
 
   task javadocJar(type: Jar) {
+    classifier = 'javadoc'
     from javadoc
   }
 
   task sourcesJar(type: Jar, dependsOn: compileJava) {
+    classifier = 'sources'
     from sourceSets.main.allSource
   }
 
