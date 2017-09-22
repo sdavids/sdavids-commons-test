@@ -193,7 +193,7 @@ spotless {
     endWithNewline()
   }
   java {
-    googleJavaFormat('1.3')
+    googleJavaFormat('1.4')
     licenseHeaderFile "${rootProject.projectDir}/gradle/spotless-license-java.txt"
   }
 }

@@ -38,7 +38,7 @@ public final class MockServicesTest {
     expectedException.expect(NullPointerException.class);
     expectedException.expectMessage("services");
 
-    //noinspection ConstantConditions
+    // noinspection ConstantConditions
     MockServices.setServices((Class<?>[]) null);
 
     assertThat(getServiceInterface(ServiceInterface1.class)).isNull();
