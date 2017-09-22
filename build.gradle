@@ -153,12 +153,12 @@ jar {
 
 bundle {
   instructions << [
-      'Bundle-SymbolicName': rootPackageName,
-      'Bundle-Name': project.name,
-      'Bundle-License': 'http://www.apache.org/licenses/LICENSE-2.0.txt',
-      'Import-Package': 'javax.annotation;resolution:=optional,*',
-      'Export-Package': "${group}.*;-split-package:=merge-first"
+      'Bundle-SymbolicName'  : rootPackageName,
+      'Bundle-Name'          : project.name,
+      'Bundle-License'       : 'http://www.apache.org/licenses/LICENSE-2.0.txt',
       'Bundle-Vendor'        : project.vendor,
+      'Import-Package'       : 'javax.annotation;resolution:=optional,*',
+      'Export-Package'       : "${group}.*;-split-package:=merge-first"
   ]
 }
 
