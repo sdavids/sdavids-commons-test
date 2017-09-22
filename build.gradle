@@ -60,6 +60,10 @@ ext {
   now = now(UTC)
   nowIsoDateTime = now.format(ISO_DATE_TIME)
   buildJdk = "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})"
+
+  javadocLinks = [
+      'http://docs.oracle.com/javase/8/docs/api/'
+  ] as String[]
 }
 
 group 'io.sdavids.commons.test'
@@ -274,8 +278,14 @@ if (project.hasProperty('release')) {
   jar.finalizedBy pack200Jar
   pack200JarExec.mustRunAfter pack200JarPrepare
 
-  javadoc.options.encoding = 'UTF-8'
-  javadoc.options.links 'https://docs.oracle.com/javase/8/docs/api/'
+  javadoc {
+    options.encoding = 'UTF-8'
+    options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PROTECTED
+    options.header = "${project.name} ${project.version}"
+    options.docTitle = "${project.name} API"
+    options.links = javadocLinks
+    options.addStringOption '-quiet'
+  }
 
   artifacts {
     archives javadocJar, sourcesJar
