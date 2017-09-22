@@ -188,7 +188,8 @@ public final class MockServices {
 
     @Override
     protected URLConnection openConnection(URL u) {
-      //noinspection AnonymousInnerClass,ReturnOfInnerClass,AnonymousInnerClassWithTooManyMethods,InnerClassTooDeeplyNested
+      // noinspection
+      // AnonymousInnerClass,ReturnOfInnerClass,AnonymousInnerClassWithTooManyMethods,InnerClassTooDeeplyNested
       return new URLConnection(u) {
 
         @Override
@@ -218,18 +219,18 @@ public final class MockServices {
   public static void setServices(Class<?>... services) {
     requireNonNull(services, "services");
 
-    //noinspection ClassLoaderInstantiation
+    // noinspection ClassLoaderInstantiation
     ClassLoader loader = new ServiceClassLoader(services);
 
     ThreadGroup threadGroup = Thread.currentThread().getThreadGroup();
-    //noinspection MethodCallInLoopCondition
+    // noinspection MethodCallInLoopCondition
     while (threadGroup.getParent() != null) {
       threadGroup = threadGroup.getParent();
     }
 
     while (true) {
       int count = threadGroup.activeCount() + 1;
-      //noinspection ObjectAllocationInLoop
+      // noinspection ObjectAllocationInLoop
       Thread[] threads = new Thread[count];
       int n = threadGroup.enumerate(threads, true);
       if (n < count) {
