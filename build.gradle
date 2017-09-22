@@ -157,6 +157,7 @@ bundle {
       'Bundle-Name'          : project.name,
       'Bundle-License'       : 'http://www.apache.org/licenses/LICENSE-2.0.txt',
       'Bundle-Vendor'        : project.vendor,
+      'Bundle-ContactAddress': 'sdavids@gmx.de',
       'Import-Package'       : 'javax.annotation;resolution:=optional,*',
       'Export-Package'       : "${group}.*;-split-package:=merge-first"
   ]
