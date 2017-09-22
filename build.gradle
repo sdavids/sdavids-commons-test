@@ -26,6 +26,10 @@ import java.nio.file.Path
 import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
 
 buildscript {
+  ext {
+    forbiddenapisVersion = '2.3'
+  }
+
   repositories {
     mavenLocal()
     jcenter()
@@ -33,7 +37,7 @@ buildscript {
 
   // https://bintray.com/bintray/jcenter
   dependencies {
-    classpath 'de.thetaphi:forbiddenapis:2.3'
+    classpath("de.thetaphi:forbiddenapis:${forbiddenapisVersion}")
   }
 }
 
@@ -83,12 +87,12 @@ apply plugin: 'maven'
 apply plugin: 'idea'
 
 dependencies {
-  errorprone "com.google.errorprone:error_prone_core:${errorproneVersion}"
+  errorprone("com.google.errorprone:error_prone_core:${errorproneVersion}")
 
-  compileOnly "com.google.code.findbugs:jsr305:${jsr305Version}"
+  compileOnly("com.google.code.findbugs:jsr305:${jsr305Version}")
 
-  testImplementation "junit:junit:${junitVersion}"
-  testImplementation "org.assertj:assertj-core:${assertjVersion}"
+  testImplementation("junit:junit:${junitVersion}")
+  testImplementation("org.assertj:assertj-core:${assertjVersion}")
 }
 
 sourceCompatibility = '1.8'
