@@ -198,6 +198,17 @@ spotless {
   }
 }
 
+test {
+  systemProperty 'user.timezone', System.properties['user.timezone']
+
+  // injectable singleton needs a new VM for each test case
+  forkEvery 1
+
+  testLogging {
+    exceptionFormat = 'full'
+  }
+}
+
 idea {
   module {
     downloadJavadoc = true
