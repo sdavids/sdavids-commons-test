@@ -60,6 +60,7 @@ ext {
   now = now(UTC)
   nowIsoDateTime = now.format(ISO_DATE_TIME)
   buildJdk = "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})"
+  vendor = 'Sebastian Davids'
 
   javadocLinks = [
       'http://docs.oracle.com/javase/8/docs/api/'
@@ -138,8 +139,10 @@ jar {
         'Build-Host': "${InetAddress.localHost.hostName}",
         'Specification-Title': project.name,
         'Specification-Version': project.version,
+        'Specification-Vendor': project.vendor,
         'Implementation-Title': project.name,
         'Implementation-Version': "${project.version}-${versioning.info.build}",
+        'Implementation-Vendor': project.vendor,
         ("Version-${project.name}".toString().capitalize()): project.version,
         ("Time-${project.name}".toString().capitalize()): nowIsoDateTime,
         ("Revision-${project.name}".toString().capitalize()): versioning.info.commit,
@@ -154,7 +157,8 @@ bundle {
       'Bundle-Name': project.name,
       'Bundle-License': 'http://www.apache.org/licenses/LICENSE-2.0.txt',
       'Import-Package': 'javax.annotation;resolution:=optional,*',
-      'Export-Package': "${group}.*;-split-package:=merge-first"
+      'Export-Package': "${group}.*;-split-package:=merge-first",
+      'Bundle-Vendor': project.vendor,
   ]
 }
 
