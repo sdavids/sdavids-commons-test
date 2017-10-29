@@ -27,7 +27,7 @@ import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
 
 buildscript {
   ext {
-    forbiddenapisVersion = '2.3'
+    forbiddenapisVersion = '2.4.1'
   }
 
   repositories {
