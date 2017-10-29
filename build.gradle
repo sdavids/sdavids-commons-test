@@ -59,6 +59,7 @@ ext {
   jsr305Version = '3.0.2'
   junitVersion = '4.12'
   assertjVersion = '3.8.0'
+  googleJavaFormatVersion = '1.5'
 
   now = now(UTC)
   nowIsoDateTime = now.format(ISO_DATE_TIME)
@@ -196,7 +197,7 @@ spotless {
     endWithNewline()
   }
   java {
-    googleJavaFormat('1.4')
+    googleJavaFormat("${googleJavaFormatVersion}")
     licenseHeaderFile "${rootProject.projectDir}/gradle/spotless-license-java.txt"
   }
 }
