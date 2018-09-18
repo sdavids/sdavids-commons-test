@@ -22,6 +22,7 @@ import net.ltgt.gradle.errorprone.CheckSeverity
 // https://plugins.gradle.org/
 plugins {
   id 'java-library'
+  id 'checkstyle'
   id 'net.nemerosa.versioning' version '2.7.1'
   id 'com.diffplug.gradle.spotless' version '3.14.0'
   id 'net.ltgt.errorprone' version '0.6'
@@ -37,6 +38,7 @@ ext {
   // https://bintray.com/bintray/jcenter
   errorproneVersion = '2.3.1'
   errorproneJavacVersion = '9+181-r4173-1'
+  checkstyleVersion = '8.12'
   java8SignatureVersion = '1.0'
   junitVersion = '4.12'
   assertjVersion = '3.11.1'
@@ -59,6 +61,7 @@ dependencies {
   signature "org.codehaus.mojo.signature:java18:${java8SignatureVersion}@signature"
   errorprone "com.google.errorprone:error_prone_core:${errorproneVersion}"
   errorproneJavac "com.google.errorprone:javac:${errorproneJavacVersion}"
+  checkstyle "com.puppycrawl.tools:checkstyle:${checkstyleVersion}"
 
   testImplementation("junit:junit:${junitVersion}")
   testImplementation("org.assertj:assertj-core:${assertjVersion}")
@@ -117,6 +120,16 @@ tasks.withType(CheckForbiddenApis).configureEach {
       'jdk-system-out',
       'jdk-reflection'
   ]
+}
+
+tasks.withType(Checkstyle).configureEach {
+  configFile = project.file('gradle/conf/checkstyle.xml')
+  configDir = project.provider({ project.file('gradle/conf/') })
+  maxWarnings = 0
+  reports {
+    xml.enabled false
+    html.enabled project.hasProperty('createReports')
+  }
 }
 
 spotless {
