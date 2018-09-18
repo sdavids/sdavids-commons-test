@@ -19,26 +19,14 @@ import static java.time.OffsetDateTime.now
 import static java.time.ZoneOffset.UTC
 import static java.time.format.DateTimeFormatter.ISO_DATE_TIME
 
-buildscript {
-  ext {
-    forbiddenapisVersion = '2.4.1'
-  }
-
-  repositories {
-    jcenter()
-  }
-
-  // https://bintray.com/bintray/jcenter
-  dependencies {
-    classpath("de.thetaphi:forbiddenapis:${forbiddenapisVersion}")
-  }
-}
+import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 
 // https://plugins.gradle.org/
 plugins {
   id 'net.nemerosa.versioning' version '2.6.1'
   id 'com.diffplug.gradle.spotless' version '3.14.0'
   id 'net.ltgt.errorprone' version '0.0.13'
+  id 'de.thetaphi.forbiddenapis' version '2.6'
   id 'com.jfrog.bintray' version '1.7.3'
 }
 
@@ -71,7 +59,6 @@ repositories {
 
 apply plugin: 'java-library'
 apply plugin: 'net.ltgt.errorprone'
-apply plugin: 'de.thetaphi.forbiddenapis'
 apply plugin: 'maven'
 
 dependencies {
@@ -133,7 +120,7 @@ jar {
   }
 }
 
-forbiddenApis {
+tasks.withType(CheckForbiddenApis).configureEach {
   // https://github.com/policeman-tools/forbidden-apis/wiki/BundledSignatures
   bundledSignatures = [
       'jdk-unsafe',
