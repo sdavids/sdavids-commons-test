@@ -76,7 +76,6 @@ apply plugin: 'java-library'
 apply plugin: 'net.ltgt.errorprone'
 apply plugin: 'de.thetaphi.forbiddenapis'
 apply plugin: 'maven'
-apply plugin: 'idea'
 
 dependencies {
   errorprone("com.google.errorprone:error_prone_core:${errorproneVersion}")
@@ -214,13 +213,6 @@ test {
 
   testLogging {
     exceptionFormat = 'full'
-  }
-}
-
-idea {
-  module {
-    downloadJavadoc = true
-    downloadSources = true
   }
 }
 
