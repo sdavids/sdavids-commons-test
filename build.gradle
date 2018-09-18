@@ -233,15 +233,6 @@ wrapper {
   gradleVersion = '4.10'
 }
 
-task versionOnly {
-  group = 'Versioning'
-  description = 'Writes the project version on the standard output.'
-
-  doLast {
-    println version
-  }
-}
-
 tasks.withType(Test) { task ->
   task.testLogging.exceptionFormat = 'full'
 }
