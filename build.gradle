@@ -44,6 +44,7 @@ ext {
   checkstyleVersion = '8.12'
   pmdVersion = '6.7.0'
   spotbugsVersion = '3.1.7'
+  findsecbugsVersion = '1.8.0'
   java8SignatureVersion = '1.0'
   junitVersion = '4.12'
   assertjVersion = '3.11.1'
@@ -69,6 +70,7 @@ dependencies {
   checkstyle "com.puppycrawl.tools:checkstyle:${checkstyleVersion}"
   pmd "net.sourceforge.pmd:pmd-core:${pmdVersion}"
   pmd "net.sourceforge.pmd:pmd-java:${pmdVersion}"
+  spotbugsPlugins "com.h3xstream.findsecbugs:findsecbugs-plugin:${findsecbugsVersion}"
 
   testImplementation("junit:junit:${junitVersion}")
   testImplementation("org.assertj:assertj-core:${assertjVersion}")
