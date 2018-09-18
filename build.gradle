@@ -23,7 +23,6 @@ import static java.time.format.DateTimeFormatter.ISO_DATE_TIME
 
 import java.nio.file.Files
 import java.nio.file.Path
-import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
 
 buildscript {
   ext {
@@ -230,9 +229,8 @@ idea {
   }
 }
 
-task wrapper(type: Wrapper) {
-  gradleVersion = '4.2.1'
-  distributionType = DistributionType.ALL
+wrapper {
+  gradleVersion = '4.10'
 }
 
 task versionOnly {
