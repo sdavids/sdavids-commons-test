@@ -16,6 +16,7 @@
 
 import static java.io.File.createTempFile
 
+import com.github.spotbugs.SpotBugsTask
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import net.ltgt.gradle.errorprone.CheckSeverity
 
@@ -28,6 +29,7 @@ plugins {
   id 'com.diffplug.gradle.spotless' version '3.14.0'
   id 'net.ltgt.errorprone' version '0.6'
   id 'de.thetaphi.forbiddenapis' version '2.6'
+  id 'com.github.spotbugs' version '1.6.3'
   id 'ru.vyarus.animalsniffer' version '1.4.6'
   id 'com.jfrog.bintray' version '1.8.4'
   id 'maven'
@@ -41,6 +43,7 @@ ext {
   errorproneJavacVersion = '9+181-r4173-1'
   checkstyleVersion = '8.12'
   pmdVersion = '6.7.0'
+  spotbugsVersion = '3.1.7'
   java8SignatureVersion = '1.0'
   junitVersion = '4.12'
   assertjVersion = '3.11.1'
@@ -139,6 +142,19 @@ tasks.withType(Checkstyle).configureEach {
 tasks.withType(Pmd).configureEach {
   ruleSets = []
   ruleSetFiles = project.files('gradle/conf/pmd.xml')
+  reports {
+    xml.enabled false
+    html.enabled project.hasProperty('createReports')
+  }
+}
+
+spotbugs {
+  toolVersion = "${spotbugsVersion}"
+  excludeFilter = project.file('gradle/conf/spotbugs-exclude-filter.xml')
+}
+
+tasks.withType(SpotBugsTask).configureEach {
+  effort = 'max'
   reports {
     xml.enabled false
     html.enabled project.hasProperty('createReports')
