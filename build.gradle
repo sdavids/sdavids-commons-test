@@ -17,12 +17,13 @@
 import static java.io.File.createTempFile
 
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
+import net.ltgt.gradle.errorprone.CheckSeverity
 
 // https://plugins.gradle.org/
 plugins {
   id 'net.nemerosa.versioning' version '2.7.1'
   id 'com.diffplug.gradle.spotless' version '3.14.0'
-  id 'net.ltgt.errorprone' version '0.0.13'
+  id 'net.ltgt.errorprone' version '0.6'
   id 'de.thetaphi.forbiddenapis' version '2.6'
   id 'com.jfrog.bintray' version '1.8.4'
 }
@@ -32,6 +33,7 @@ ext {
 
   // https://bintray.com/bintray/jcenter
   errorproneVersion = '2.3.1'
+  errorproneJavacVersion = '9+181-r4173-1'
   jsr305Version = '3.0.2'
   junitVersion = '4.12'
   assertjVersion = '3.8.0'
@@ -52,11 +54,11 @@ repositories {
 }
 
 apply plugin: 'java-library'
-apply plugin: 'net.ltgt.errorprone'
 apply plugin: 'maven'
 
 dependencies {
-  errorprone("com.google.errorprone:error_prone_core:${errorproneVersion}")
+  errorprone "com.google.errorprone:error_prone_core:${errorproneVersion}"
+  errorproneJavac "com.google.errorprone:javac:${errorproneJavacVersion}"
 
   compileOnly("com.google.code.findbugs:jsr305:${jsr305Version}")
 
@@ -64,31 +66,23 @@ dependencies {
   testImplementation("org.assertj:assertj-core:${assertjVersion}")
 }
 
-sourceCompatibility = '1.8'
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
-compileJava.options.debugOptions.debugLevel = 'source,lines,vars'
-
-[compileJava, compileTestJava]*.options.collect { options ->
+tasks.withType(JavaCompile).configureEach {
+  options.fork = true
   options.encoding = 'UTF-8'
-}
-
-[compileJava, compileTestJava]*.options.collect { options ->
-  options.debug = true
+  options.debugOptions.debugLevel = 'source,lines,vars'
   options.deprecation = true
-  options.warnings = true
-}
-
-// http://docs.oracle.com/javase/8/docs/technotes/tools/windows/javac.html#BHCJCABJ
-compileJava.options.collect { options ->
-  options.compilerArgs << '-parameters'
-  options.compilerArgs << '-Xlint:all,-processing,-path'
-  options.compilerArgs << '-Werror'
-}
-
-// http://docs.oracle.com/javase/8/docs/technotes/tools/windows/javac.html#BHCJCABJ
-compileTestJava.options.collect { options ->
-  options.compilerArgs << '-parameters'
-  options.compilerArgs << '-Xlint:all,-processing,-path'
+  // https://docs.oracle.com/javase/10/tools/javac.htm#GUID-AEEC9F07-CB49-4E96-8BC7-BCC2C7F725C9__ENABLEORDISABLEWARNINGSWITHTHE-XLIN-7D3DB0EE
+  options.compilerArgs += ['-parameters', '-Xlint:all,-processing,-path', '-Werror']
+  options.errorprone {
+    disableWarningsInGeneratedCode = true
+    allDisabledChecksAsWarnings = true
+    check('StaticOrDefaultInterfaceMethod', CheckSeverity.OFF)
+    check('ReturnMissingNullable', CheckSeverity.OFF)
+    check('Var', CheckSeverity.OFF)
+  }
 }
 
 tasks.named('jar').configure {
