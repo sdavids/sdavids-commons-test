@@ -237,14 +237,44 @@ if (project.hasProperty('release')) {
   apply plugin: 'signing'
   apply plugin: 'maven-publish'
 
-  task javadocJar(type: Jar) {
+  task javadocJar(type: Jar, dependsOn: 'javadoc') {
     classifier = 'javadoc'
-    from javadoc
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+    dirMode = 0775
+    fileMode = 0664
+    manifest {
+      attributes(
+          'Build-Revision': versioning.info.commit,
+          'Specification-Title': project.name,
+          'Specification-Version': project.version,
+          'Specification-Vendor': project.vendor,
+          'Implementation-Title': project.name,
+          'Implementation-Version': "${project.version}-${versioning.info.build}",
+          'Implementation-Vendor': project.vendor
+      )
+    }
+    from javadoc.destinationDir
   }
 
-  task sourcesJar(type: Jar, dependsOn: compileJava) {
+  task sourcesJar(type: Jar, dependsOn: 'classes') {
     classifier = 'sources'
-    from sourceSets.main.allSource
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+    dirMode = 0775
+    fileMode = 0664
+    manifest {
+      attributes(
+          'Build-Revision': versioning.info.commit,
+          'Specification-Title': project.name,
+          'Specification-Version': project.version,
+          'Specification-Vendor': project.vendor,
+          'Implementation-Title': project.name,
+          'Implementation-Version': "${project.version}-${versioning.info.build}",
+          'Implementation-Vendor': project.vendor
+      )
+    }
+    from sourceSets.main.allSource exclude 'rebel.xml'
   }
 
   javadoc {
