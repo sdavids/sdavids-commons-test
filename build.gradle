@@ -75,8 +75,8 @@ dependencies {
   pmd "net.sourceforge.pmd:pmd-java:${pmdVersion}"
   spotbugsPlugins "com.h3xstream.findsecbugs:findsecbugs-plugin:${findsecbugsVersion}"
 
-  testImplementation("junit:junit:${junitVersion}")
-  testImplementation("org.assertj:assertj-core:${assertjVersion}")
+  testImplementation "junit:junit:${junitVersion}"
+  testImplementation "org.assertj:assertj-core:${assertjVersion}"
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8
