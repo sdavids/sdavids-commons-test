@@ -36,7 +36,6 @@ ext {
   // https://bintray.com/bintray/jcenter
   errorproneVersion = '2.3.1'
   errorproneJavacVersion = '9+181-r4173-1'
-  jsr305Version = '3.0.2'
   junitVersion = '4.12'
   assertjVersion = '3.11.1'
 
@@ -58,8 +57,6 @@ repositories {
 dependencies {
   errorprone "com.google.errorprone:error_prone_core:${errorproneVersion}"
   errorproneJavac "com.google.errorprone:javac:${errorproneJavacVersion}"
-
-  compileOnly("com.google.code.findbugs:jsr305:${jsr305Version}")
 
   testImplementation("junit:junit:${junitVersion}")
   testImplementation("org.assertj:assertj-core:${assertjVersion}")
