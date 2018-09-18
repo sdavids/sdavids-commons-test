@@ -50,7 +50,6 @@ group 'io.sdavids.commons.test'
 version = '1.2.0'
 
 repositories {
-  mavenLocal()
   jcenter()
 }
 
