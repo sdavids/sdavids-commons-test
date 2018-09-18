@@ -6,22 +6,18 @@ image::https://api.bintray.com/packages/sdavids/sdavids/sdavids-commons-test/ima
 
 == Building from Source
 
-All modules can be build with Gradle using the following command:
+This module can be build via:
 
- $ ./gradlew clean assemble
+ $ ./gradlew build
 
-All modules can be tested with Gradle using the following command:
+== Format Source Code
 
- $ ./gradlew clean test
+The source code can be formatted via:
 
-Since Gradle has excellent incremental build support, one can usually omit executing the clean task.
-
-To stop the Gradle daemon execute:
-
- $ ./gradlew --stop
+ $ ./gradlew spotlessApply
 
 == Installing in Local Maven Repository
 
-All modules can be installed in a local Maven repository via the following command:
+This module can be installed in a local Maven repository via:
 
- $ ./gradlew clean install
+ $ ./gradlew install
