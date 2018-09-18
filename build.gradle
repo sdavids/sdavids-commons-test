@@ -25,6 +25,7 @@ plugins {
   id 'java-library'
   id 'checkstyle'
   id 'pmd'
+  id 'jacoco'
   id 'net.nemerosa.versioning' version '2.7.1'
   id 'com.diffplug.gradle.spotless' version '3.14.0'
   id 'net.ltgt.errorprone' version '0.6'
@@ -46,6 +47,7 @@ ext {
   spotbugsVersion = '3.1.7'
   findsecbugsVersion = '1.8.0'
   java8SignatureVersion = '1.0'
+  jacocoVersion = '0.8.2'
   junitVersion = '4.12'
   assertjVersion = '3.11.1'
 
@@ -161,6 +163,21 @@ tasks.withType(SpotBugsTask).configureEach {
     xml.enabled false
     html.enabled project.hasProperty('createReports')
   }
+}
+
+jacoco {
+  toolVersion = "${jacocoVersion}"
+}
+
+jacocoTestReport {
+  reports {
+    xml.enabled false
+    html.enabled project.hasProperty('createReports')
+  }
+}
+
+if (project.hasProperty('createReports')) {
+  check.dependsOn jacocoTestReport
 }
 
 spotless {
