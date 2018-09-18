@@ -15,14 +15,9 @@
  */
 
 import static java.io.File.createTempFile
-import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import static java.time.OffsetDateTime.now
 import static java.time.ZoneOffset.UTC
 import static java.time.format.DateTimeFormatter.ISO_DATE_TIME
-
-import java.nio.file.Files
-import java.nio.file.Path
 
 buildscript {
   ext {
@@ -251,50 +246,6 @@ if (project.hasProperty('release')) {
     classifier = 'sources'
     from sourceSets.main.allSource
   }
-
-  task pack200JarPrepare(dependsOn: jar) {
-    doLast {
-      final archivePath = jar.archivePath.toPath()
-      final copyPath = archivePath.resolveSibling("${archivePath.fileName}.orig")
-
-      Files.copy(archivePath, copyPath, REPLACE_EXISTING, COPY_ATTRIBUTES)
-
-      ext.archivePath = archivePath
-      ext.copyPath = copyPath
-    }
-  }
-
-  task pack200JarExec(type: Exec, dependsOn: jar) {
-    commandLine 'pack200',
-        '--repack',
-        '--effort=9',
-        '--segment-limit=-1',
-        '--modification-time=latest',
-        jar.archivePath
-  }
-
-  task pack200JarFinalize(dependsOn: pack200JarPrepare) {
-    doLast {
-      final Path archivePath = pack200JarPrepare.ext.archivePath
-      final Path copyPath = pack200JarPrepare.ext.copyPath
-      final archiveSize = Files.size(archivePath)
-      final copySize = Files.size(copyPath)
-
-      if (archiveSize > copySize) {
-        Files.move(copyPath, archivePath, REPLACE_EXISTING)
-      } else {
-        Files.delete(copyPath)
-      }
-    }
-  }
-
-  task pack200Jar(dependsOn: [jar, pack200JarPrepare, pack200JarExec, pack200JarFinalize]) {
-    group = 'Build'
-    description = 'Transforms the created JAR file into a compressed pack200 JAR file.'
-  }
-
-  jar.finalizedBy pack200Jar
-  pack200JarExec.mustRunAfter pack200JarPrepare
 
   javadoc {
     options.encoding = 'UTF-8'
