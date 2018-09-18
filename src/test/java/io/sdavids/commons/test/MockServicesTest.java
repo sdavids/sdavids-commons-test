@@ -33,6 +33,7 @@ public final class MockServicesTest {
 
   @Rule public ExpectedException expectedException = ExpectedException.none();
 
+  @SuppressWarnings("ExpectedExceptionChecker")
   @Test
   public void setServices_null() {
     expectedException.expect(NullPointerException.class);

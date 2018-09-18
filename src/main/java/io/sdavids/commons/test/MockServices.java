@@ -144,6 +144,7 @@ public final class MockServices {
     }
   }
 
+  @SuppressWarnings("JdkObsolete")
   private static final class ServiceEnumeration implements Enumeration<URL> {
 
     private final Enumeration<URL> resources;
