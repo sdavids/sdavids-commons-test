@@ -49,7 +49,7 @@ ext {
   findsecbugsVersion = '1.8.0'
   java8SignatureVersion = '1.0'
   jacocoVersion = '0.8.2'
-  junitVersion = '4.12'
+  junitVersion = '5.3.1'
   assertjVersion = '3.11.1'
 
   vendor = 'Sebastian Davids'
@@ -75,7 +75,8 @@ dependencies {
   pmd "net.sourceforge.pmd:pmd-java:${pmdVersion}"
   spotbugsPlugins "com.h3xstream.findsecbugs:findsecbugs-plugin:${findsecbugsVersion}"
 
-  testImplementation "junit:junit:${junitVersion}"
+  testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+  testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
   testImplementation "org.assertj:assertj-core:${assertjVersion}"
 }
 
@@ -219,6 +220,8 @@ spotless {
 }
 
 tasks.withType(Test).configureEach {
+  useJUnitPlatform()
+
   systemProperty 'user.timezone', System.properties['user.timezone']
   systemProperty 'user.language', System.properties['user.language']
   systemProperty 'user.country', System.properties['user.country']

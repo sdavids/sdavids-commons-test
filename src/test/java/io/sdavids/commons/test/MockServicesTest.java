@@ -17,13 +17,14 @@ package io.sdavids.commons.test;
 
 import static java.util.ServiceLoader.load;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Iterator;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
-public final class MockServicesTest {
+final class MockServicesTest {
 
   private static <T> T getServiceInterface(Class<T> clazz) {
     Iterator<T> providers = load(clazz).iterator();
@@ -31,41 +32,53 @@ public final class MockServicesTest {
     return providers.hasNext() ? providers.next() : null;
   }
 
-  @Rule public ExpectedException expectedException = ExpectedException.none();
+  @AfterEach
+  void tearDown() {
+    MockServices.setServices();
+  }
 
-  @SuppressWarnings("ExpectedExceptionChecker")
   @Test
-  public void setServices_null() {
-    expectedException.expect(NullPointerException.class);
-    expectedException.expectMessage("services");
-
-    // noinspection ConstantConditions
-    MockServices.setServices((Class<?>[]) null);
+  void setServices_null() {
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          // noinspection ConstantConditions
+          MockServices.setServices((Class<?>[]) null);
+        },
+        "services");
 
     assertThat(getServiceInterface(ServiceInterface1.class)).isNull();
     assertThat(getServiceInterface(ServiceInterface2.class)).isNull();
   }
 
   @Test
-  public void setServices_non_public_no_arg_ctor() {
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage(
+  void setServices_non_public_no_arg_ctor() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> MockServices.setServices(NonPublicNoArgCtorServiceInterface1.class),
         "Class io.sdavids.commons.test.NonPublicNoArgCtorServiceInterface1 has no public no-arg constructor");
 
-    MockServices.setServices(NonPublicNoArgCtorServiceInterface1.class);
+    assertThat(getServiceInterface(ServiceInterface1.class)).isNull();
+    assertThat(getServiceInterface(ServiceInterface2.class)).isNull();
   }
 
   @Test
-  public void setServices_abstract() {
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage(
+  void setServices_abstract() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> MockServices.setServices(AbstractServiceInterface1.class),
         "Class io.sdavids.commons.test.AbstractServiceInterface1 must be public");
 
-    MockServices.setServices(AbstractServiceInterface1.class);
+    assertThat(getServiceInterface(ServiceInterface1.class)).isNull();
+    assertThat(getServiceInterface(ServiceInterface2.class)).isNull();
   }
 
   @Test
-  public void setServices_empty() {
+  void setServices_empty() {
+    MockServices.setServices(TestableServiceInterface1.class);
+
+    assumeThat(getServiceInterface(ServiceInterface1.class)).isNotNull();
+
     MockServices.setServices();
 
     assertThat(getServiceInterface(ServiceInterface1.class)).isNull();
@@ -73,7 +86,7 @@ public final class MockServicesTest {
   }
 
   @Test
-  public void setServices_one() {
+  void setServices_one() {
     MockServices.setServices(TestableServiceInterface1.class);
 
     ServiceInterface1 serviceInterface = getServiceInterface(ServiceInterface1.class);
@@ -86,7 +99,7 @@ public final class MockServicesTest {
   }
 
   @Test
-  public void setServices_several() {
+  void setServices_several() {
     MockServices.setServices(TestableServiceInterface2.class, TestableServiceInterface1.class);
 
     ServiceInterface1 serviceInterface1 = getServiceInterface(ServiceInterface1.class);
