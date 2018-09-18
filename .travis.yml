@@ -25,13 +25,8 @@ language: java
 sudo: false
 dist: trusty
 
-addons:
-  apt:
-    packages:
-      - oracle-java8-installer
-
 jdk:
-  - oraclejdk8
+  - openjdk8
 
 # https://docs.travis-ci.com/user/languages/java/#Caching
 before_cache:
