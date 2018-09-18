@@ -27,7 +27,7 @@ plugins {
   id 'com.diffplug.gradle.spotless' version '3.14.0'
   id 'net.ltgt.errorprone' version '0.0.13'
   id 'de.thetaphi.forbiddenapis' version '2.6'
-  id 'com.jfrog.bintray' version '1.7.3'
+  id 'com.jfrog.bintray' version '1.8.4'
 }
 
 ext {
