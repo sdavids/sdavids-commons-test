@@ -27,6 +27,7 @@ dist: trusty
 
 jdk:
   - openjdk8
+  - openjdk10
 
 # https://docs.travis-ci.com/user/languages/java/#Caching
 before_cache:
