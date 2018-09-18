@@ -38,7 +38,7 @@ ext {
   errorproneJavacVersion = '9+181-r4173-1'
   jsr305Version = '3.0.2'
   junitVersion = '4.12'
-  assertjVersion = '3.8.0'
+  assertjVersion = '3.11.1'
 
   vendor = 'Sebastian Davids'
 
