@@ -21,11 +21,13 @@ import net.ltgt.gradle.errorprone.CheckSeverity
 
 // https://plugins.gradle.org/
 plugins {
+  id 'java-library'
   id 'net.nemerosa.versioning' version '2.7.1'
   id 'com.diffplug.gradle.spotless' version '3.14.0'
   id 'net.ltgt.errorprone' version '0.6'
   id 'de.thetaphi.forbiddenapis' version '2.6'
   id 'com.jfrog.bintray' version '1.8.4'
+  id 'maven'
 }
 
 ext {
@@ -52,9 +54,6 @@ repositories {
   mavenLocal()
   jcenter()
 }
-
-apply plugin: 'java-library'
-apply plugin: 'maven'
 
 dependencies {
   errorprone "com.google.errorprone:error_prone_core:${errorproneVersion}"
