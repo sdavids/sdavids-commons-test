@@ -15,9 +15,6 @@
  */
 
 import static java.io.File.createTempFile
-import static java.time.OffsetDateTime.now
-import static java.time.ZoneOffset.UTC
-import static java.time.format.DateTimeFormatter.ISO_DATE_TIME
 
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 
@@ -39,9 +36,6 @@ ext {
   junitVersion = '4.12'
   assertjVersion = '3.8.0'
 
-  now = now(UTC)
-  nowIsoDateTime = now.format(ISO_DATE_TIME)
-  buildJdk = "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})"
   vendor = 'Sebastian Davids'
 
   javadocLinks = [
@@ -97,27 +91,29 @@ compileTestJava.options.collect { options ->
   options.compilerArgs << '-Xlint:all,-processing,-path'
 }
 
-jar {
+tasks.named('jar').configure {
+  preserveFileTimestamps = false
+  reproducibleFileOrder = true
+  dirMode = 0775
+  fileMode = 0664
   manifest {
     attributes(
-        'Created-By': "Gradle ${gradle.gradleVersion}",
-        'Built-By': project.author,
-        'Build-Jdk': buildJdk,
-        'Build-Time': nowIsoDateTime,
         'Build-Revision': versioning.info.commit,
-        'Build-Host': "${InetAddress.localHost.hostName}",
         'Specification-Title': project.name,
         'Specification-Version': project.version,
         'Specification-Vendor': project.vendor,
         'Implementation-Title': project.name,
         'Implementation-Version': "${project.version}-${versioning.info.build}",
         'Implementation-Vendor': project.vendor,
-        ("Version-${project.name}".toString().capitalize()): project.version,
-        ("Time-${project.name}".toString().capitalize()): nowIsoDateTime,
-        ("Revision-${project.name}".toString().capitalize()): versioning.info.commit,
-        'Automatic-Module-Name': rootPackageName
+        'Automatic-Module-Name': project.rootPackageName
     )
   }
+  from("${project.rootDir}") {
+    include 'NOTICE'
+    include 'LICENSE'
+    into 'META-INF'
+  }
+  exclude('rebel.xml')
 }
 
 tasks.withType(CheckForbiddenApis).configureEach {
