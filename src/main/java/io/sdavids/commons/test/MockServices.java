@@ -72,6 +72,7 @@ public final class MockServices {
 
     private final Set<Class<?>> services;
 
+    @SuppressWarnings("PMD.UseProperClassLoader")
     ServiceClassLoader(Class<?>... services) {
       super(MethodHandles.lookup().lookupClass().getClassLoader());
 
@@ -144,7 +145,7 @@ public final class MockServices {
     }
   }
 
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings({"JdkObsolete", "PMD.ReplaceEnumerationWithIterator"})
   private static final class ServiceEnumeration implements Enumeration<URL> {
 
     private final Enumeration<URL> resources;
@@ -194,7 +195,9 @@ public final class MockServices {
       return new URLConnection(u) {
 
         @Override
-        public void connect() {}
+        public void connect() {
+          // ignore
+        }
 
         @Override
         public InputStream getInputStream() {
@@ -217,6 +220,7 @@ public final class MockServices {
    * @param services the mock services; not null
    * @since 1.0
    */
+  @SuppressWarnings({"PMD.DoNotUseThreads", "PMD.AvoidThreadGroup"})
   public static void setServices(Class<?>... services) {
     requireNonNull(services, "services");
 

@@ -18,7 +18,9 @@ package io.sdavids.commons.test;
 public final class NonPublicNoArgCtorServiceInterface1 implements ServiceInterface1 {
 
   @SuppressWarnings("ProtectedMemberInFinalClass")
-  protected NonPublicNoArgCtorServiceInterface1() {}
+  protected NonPublicNoArgCtorServiceInterface1() {
+    // do nothing
+  }
 
   @Override
   public int value() {

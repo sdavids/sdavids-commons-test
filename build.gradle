@@ -23,6 +23,7 @@ import net.ltgt.gradle.errorprone.CheckSeverity
 plugins {
   id 'java-library'
   id 'checkstyle'
+  id 'pmd'
   id 'net.nemerosa.versioning' version '2.7.1'
   id 'com.diffplug.gradle.spotless' version '3.14.0'
   id 'net.ltgt.errorprone' version '0.6'
@@ -39,6 +40,7 @@ ext {
   errorproneVersion = '2.3.1'
   errorproneJavacVersion = '9+181-r4173-1'
   checkstyleVersion = '8.12'
+  pmdVersion = '6.7.0'
   java8SignatureVersion = '1.0'
   junitVersion = '4.12'
   assertjVersion = '3.11.1'
@@ -62,6 +64,8 @@ dependencies {
   errorprone "com.google.errorprone:error_prone_core:${errorproneVersion}"
   errorproneJavac "com.google.errorprone:javac:${errorproneJavacVersion}"
   checkstyle "com.puppycrawl.tools:checkstyle:${checkstyleVersion}"
+  pmd "net.sourceforge.pmd:pmd-core:${pmdVersion}"
+  pmd "net.sourceforge.pmd:pmd-java:${pmdVersion}"
 
   testImplementation("junit:junit:${junitVersion}")
   testImplementation("org.assertj:assertj-core:${assertjVersion}")
@@ -126,6 +130,15 @@ tasks.withType(Checkstyle).configureEach {
   configFile = project.file('gradle/conf/checkstyle.xml')
   configDir = project.provider({ project.file('gradle/conf/') })
   maxWarnings = 0
+  reports {
+    xml.enabled false
+    html.enabled project.hasProperty('createReports')
+  }
+}
+
+tasks.withType(Pmd).configureEach {
+  ruleSets = []
+  ruleSetFiles = project.files('gradle/conf/pmd.xml')
   reports {
     xml.enabled false
     html.enabled project.hasProperty('createReports')
