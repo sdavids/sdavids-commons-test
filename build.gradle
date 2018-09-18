@@ -93,8 +93,9 @@ tasks.withType(JavaCompile).configureEach {
   options.errorprone {
     disableWarningsInGeneratedCode = true
     allDisabledChecksAsWarnings = true
-    check('StaticOrDefaultInterfaceMethod', CheckSeverity.OFF)
+    check('BooleanParameter', CheckSeverity.OFF)
     check('ReturnMissingNullable', CheckSeverity.OFF)
+    check('StaticOrDefaultInterfaceMethod', CheckSeverity.OFF)
     check('Var', CheckSeverity.OFF)
   }
 }
