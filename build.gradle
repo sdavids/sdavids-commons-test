@@ -26,6 +26,7 @@ plugins {
   id 'com.diffplug.gradle.spotless' version '3.14.0'
   id 'net.ltgt.errorprone' version '0.6'
   id 'de.thetaphi.forbiddenapis' version '2.6'
+  id 'ru.vyarus.animalsniffer' version '1.4.6'
   id 'com.jfrog.bintray' version '1.8.4'
   id 'maven'
 }
@@ -36,6 +37,7 @@ ext {
   // https://bintray.com/bintray/jcenter
   errorproneVersion = '2.3.1'
   errorproneJavacVersion = '9+181-r4173-1'
+  java8SignatureVersion = '1.0'
   junitVersion = '4.12'
   assertjVersion = '3.11.1'
 
@@ -54,6 +56,7 @@ repositories {
 }
 
 dependencies {
+  signature "org.codehaus.mojo.signature:java18:${java8SignatureVersion}@signature"
   errorprone "com.google.errorprone:error_prone_core:${errorproneVersion}"
   errorproneJavac "com.google.errorprone:javac:${errorproneJavacVersion}"
 
