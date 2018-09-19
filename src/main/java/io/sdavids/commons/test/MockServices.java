@@ -43,16 +43,18 @@ import java.util.Set;
 /**
  * Enables one to register mock services.
  *
- * <h3 id="usage">Usage</h3>
+ * <h3 id="usage-set-services">Usage JVM-global</h3>
  *
  * <pre><code>
- * &#64;Before
- * public void setUp() {
- *   MockServices.setServices(MyServiceMock.class);
+ * &#64;AfterEach
+ * void tearDown() {
+ *   MockServices.setServices();
  * }
  *
  * &#64;Test
- * public void getService() {
+ * void getService() {
+ *   MockServices.setServices(MyServiceMock.class);
+ *
  *   Iterator&lt;MyService&gt; providers = ServiceLoader.load(MyService.class).iterator();
  *
  *   // providers.next() is MyServiceMock
