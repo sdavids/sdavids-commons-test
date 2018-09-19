@@ -167,7 +167,7 @@ final class MockServicesTest {
     assertThat(providers.hasNext()).isFalse();
   }
 
-  @SuppressWarnings({"PMD.DoNotUseThreads", "PMD.AvoidThreadGroup"})
+  @SuppressWarnings("PMD.AvoidThreadGroup")
   @Test
   void setServices_accessible_by_all_threads() throws InterruptedException {
     ThreadGroup parentThreadGroup = Thread.currentThread().getThreadGroup().getParent();
@@ -210,7 +210,6 @@ final class MockServicesTest {
     assertThat(serviceInterface2InThread[1]).isNull();
   }
 
-  @SuppressWarnings({"PMD.DoNotUseThreads", "PMD.AvoidThreadGroup"})
   @Test
   void setServices_thread_setContextClassLoader_throws_SecurityException()
       throws InterruptedException, BrokenBarrierException {

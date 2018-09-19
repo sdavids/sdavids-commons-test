@@ -138,7 +138,6 @@
 
   <rule ref="category/java/multithreading.xml/AvoidSynchronizedAtMethodLevel"/>
   <rule ref="category/java/multithreading.xml/AvoidThreadGroup"/>
-  <rule ref="category/java/multithreading.xml/DoNotUseThreads"/>
   <rule ref="category/java/multithreading.xml/DontCallThreadRun"/>
   <rule ref="category/java/multithreading.xml/NonThreadSafeSingleton"/>
   <rule ref="category/java/multithreading.xml/UnsynchronizedStaticDateFormatter"/>

@@ -225,7 +225,7 @@ public final class MockServices {
    * @param services the mock services; not null
    * @since 1.0
    */
-  @SuppressWarnings({"PMD.DoNotUseThreads", "PMD.AvoidThreadGroup"})
+  @SuppressWarnings("PMD.AvoidThreadGroup")
   public static void setServices(Class<?>... services) {
     requireNonNull(services, "services");
 
