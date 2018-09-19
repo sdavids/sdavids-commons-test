@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Sebastian Davids
+ * Copyright (c) 2017-2018, Sebastian Davids
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -216,6 +216,8 @@ public final class MockServices {
    * ones registered by this method.
    *
    * <p>Each mock service class must be public and have a public no-arg constructor.
+   *
+   * <p>Each mock service class is accessible from all threads, i.e. JVM-global.
    *
    * @param services the mock services; not null
    * @since 1.0
