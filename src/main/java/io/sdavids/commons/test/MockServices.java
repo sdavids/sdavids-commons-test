@@ -83,7 +83,8 @@ public final class MockServices {
           int mods = clazz.getModifiers();
           if (!isPublic(mods) || isAbstract(mods)) {
             throw new IllegalArgumentException(
-                format(Locale.ROOT, "Class %s must be public", clazz.getName()));
+                format(
+                    Locale.ROOT, "Class %s must be a public non-abstract class", clazz.getName()));
           }
           clazz.getConstructor();
         } catch (NoSuchMethodException e) {

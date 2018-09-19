@@ -21,6 +21,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Iterator;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -78,7 +82,18 @@ final class MockServicesTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> MockServices.setServices(AbstractServiceInterface1.class),
-        "Class io.sdavids.commons.test.AbstractServiceInterface1 must be public");
+        "Class io.sdavids.commons.test.AbstractServiceInterface1 must be a public non-abstract class");
+
+    assertThat(getServiceInterface(ServiceInterface1.class)).isNull();
+    assertThat(getServiceInterface(ServiceInterface2.class)).isNull();
+  }
+
+  @Test
+  void setServices_non_public() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> MockServices.setServices(NonPublicServiceInterface1.class),
+        "Class io.sdavids.commons.test.NonPublicServiceInterface1 must be a public non-abstract class");
 
     assertThat(getServiceInterface(ServiceInterface1.class)).isNull();
     assertThat(getServiceInterface(ServiceInterface2.class)).isNull();
@@ -120,6 +135,36 @@ final class MockServicesTest {
     assertThat(serviceInterface2).isNotNull();
     assertThat(serviceInterface2).isInstanceOf(ServiceInterface2.class);
     assertThat(serviceInterface2.value()).isEqualTo(2);
+  }
+
+  @Test
+  void setServices_registered() {
+    ServiceInterface3 serviceInterface = getServiceInterface(ServiceInterface3.class);
+
+    assertThat(serviceInterface).isNotNull();
+    assertThat(serviceInterface).isInstanceOf(ServiceInterface3.class);
+    assertThat(serviceInterface.value()).isEqualTo(-3);
+  }
+
+  @Test
+  void setServices_registed_last() {
+    MockServices.setServices(TestableServiceInterface3.class);
+
+    Iterator<ServiceInterface3> providers = load(ServiceInterface3.class).iterator();
+
+    ServiceInterface3 serviceInterface1 = providers.next();
+
+    assertThat(serviceInterface1).isNotNull();
+    assertThat(serviceInterface1).isInstanceOf(ServiceInterface3.class);
+    assertThat(serviceInterface1.value()).isEqualTo(3);
+
+    ServiceInterface3 serviceInterface2 = providers.next();
+
+    assertThat(serviceInterface2).isNotNull();
+    assertThat(serviceInterface2).isInstanceOf(ServiceInterface3.class);
+    assertThat(serviceInterface2.value()).isEqualTo(-3);
+
+    assertThat(providers.hasNext()).isFalse();
   }
 
   @SuppressWarnings({"PMD.DoNotUseThreads", "PMD.AvoidThreadGroup"})
@@ -218,5 +263,44 @@ final class MockServicesTest {
     assertIsTestableServiceInterface1(getServiceInterface(ServiceInterface1.class));
 
     assertThat(getServiceInterface(ServiceInterface2.class)).isNull();
+  }
+
+  @Test
+  void contextClassLoader_getResource_found() throws IOException {
+    MockServices.setServices(TestableServiceInterface1.class);
+
+    String serviceInterface1Name = ServiceInterface1.class.getName();
+
+    URL resource =
+        Thread.currentThread()
+            .getContextClassLoader()
+            .getResource("META-INF/services/" + serviceInterface1Name);
+
+    assertThat(resource).isNotNull();
+    assertThat(resource.toExternalForm()).endsWith(serviceInterface1Name);
+
+    URLConnection urlConnection = resource.openConnection();
+
+    urlConnection.connect();
+
+    try (InputStream inputStream = urlConnection.getInputStream()) {
+      assertThat(inputStream.available()).isGreaterThan(0);
+    }
+  }
+
+  @Test
+  void contextClassLoader_getResource_not_found() {
+    MockServices.setServices(TestableServiceInterface1.class);
+
+    assertThat(Thread.currentThread().getContextClassLoader().getResource("META-INF/MANIFEST2.MF"))
+        .isNull();
+  }
+
+  @Test
+  void contextClassLoader_getResources_service_not_found() {
+    MockServices.setServices(TestableServiceInterface1.class);
+
+    assertThat(Thread.currentThread().getContextClassLoader().getResource("META-INF/services/x"))
+        .isNull();
   }
 }
