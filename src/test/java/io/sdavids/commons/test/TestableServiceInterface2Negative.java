@@ -15,10 +15,10 @@
  */
 package io.sdavids.commons.test;
 
-public final class RegisteredServiceInterface3 implements ServiceInterface3 {
+public final class TestableServiceInterface2Negative implements ServiceInterface2 {
 
   @Override
   public int value() {
-    return 333;
+    return -2;
   }
 }
