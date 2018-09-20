@@ -158,7 +158,7 @@ bundle {
       'Bundle-License': 'http://www.apache.org/licenses/LICENSE-2.0.txt',
       'Import-Package': 'javax.annotation;resolution:=optional,*',
       'Export-Package': "${group}.*;-split-package:=merge-first",
-      'Bundle-Vendor': project.vendor,
+      'Bundle-Vendor': project.vendor
   ]
 }
 
