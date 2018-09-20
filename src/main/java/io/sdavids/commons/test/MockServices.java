@@ -48,11 +48,12 @@ import java.util.Set;
  * <pre><code>
  * &#64;AfterEach
  * void tearDown() {
+ *   // clears all mock services
  *   MockServices.setServices();
  * }
  *
  * &#64;Test
- * void getService() {
+ * void setServices() {
  *   MockServices.setServices(MyServiceMock.class);
  *
  *   Iterator&lt;MyService&gt; providers = ServiceLoader.load(MyService.class).iterator();
@@ -221,6 +222,8 @@ public final class MockServices {
    * <p>Each mock service class must be public and have a public no-arg constructor.
    *
    * <p>Each mock service class is accessible from all threads, i.e. JVM-global.
+   *
+   * <p><em>Note:</em> {@code MockServices.setServices()} will clear all mock services.
    *
    * @param services the mock services; not null
    * @since 1.0
