@@ -16,6 +16,7 @@
 package io.sdavids.commons.test;
 
 import static java.util.ServiceLoader.load;
+import static java.util.concurrent.ForkJoinPool.commonPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
@@ -27,10 +28,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Iterator;
 import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -189,10 +188,8 @@ final class MockServicesTest {
 
     assumeThat(parentThreadGroup).isNotNull();
 
-    ExecutorService executorService = Executors.newCachedThreadPool();
-
-    CyclicBarrier allStartedGate = new CyclicBarrier(5);
-    CyclicBarrier servicesSetGate = new CyclicBarrier(5);
+    CyclicBarrier allStartedGate = new CyclicBarrier(6);
+    CyclicBarrier servicesSetGate = new CyclicBarrier(6);
 
     Thread delayedGet =
         new Thread(
@@ -226,6 +223,12 @@ final class MockServicesTest {
             "daemonInParentGet-setServices_multiple_threads");
     daemonInParentGet.setDaemon(true);
 
+    ForkJoinTask<?> forkJoinTask =
+        commonPool()
+            .submit(
+                () ->
+                    assertNoMockServiceRegistrationsInCommonPool(allStartedGate, servicesSetGate));
+
     delayedGet.start();
     daemonGet.start();
     delayedInParentGroupGet.start();
@@ -239,28 +242,14 @@ final class MockServicesTest {
 
     assertTestableServiceInterface1Registration();
 
-    CompletableFuture.runAsync(MockServicesTest::assertTestableServiceInterface1Registration)
-        .join();
-
-    CompletableFuture.runAsync(
-            MockServicesTest::assertTestableServiceInterface1Registration, executorService)
-        .join();
-
     SECONDS.timedJoin(delayedGet, TIMEOUT);
     SECONDS.timedJoin(daemonGet, TIMEOUT);
     SECONDS.timedJoin(delayedInParentGroupGet, TIMEOUT);
     SECONDS.timedJoin(daemonInParentGet, TIMEOUT);
 
-    assertTestableServiceInterface1Registration();
+    forkJoinTask.quietlyJoin();
 
-    executorService.shutdown();
-    try {
-      if (!executorService.awaitTermination(TIMEOUT, SECONDS)) {
-        executorService.shutdownNow();
-      }
-    } catch (InterruptedException e) {
-      executorService.shutdownNow();
-    }
+    assertTestableServiceInterface1Registration();
   }
 
   @Test
@@ -556,10 +545,8 @@ final class MockServicesTest {
 
     assertTestableServiceInterface1NegativeRegistration();
 
-    ExecutorService executorService = Executors.newCachedThreadPool();
-
-    CyclicBarrier allStartedGate = new CyclicBarrier(6);
-    CyclicBarrier servicesSetGate = new CyclicBarrier(5);
+    CyclicBarrier allStartedGate = new CyclicBarrier(7);
+    CyclicBarrier servicesSetGate = new CyclicBarrier(6);
 
     Thread delayedGet =
         new Thread(
@@ -593,6 +580,12 @@ final class MockServicesTest {
             "daemonInParentGet-withServicesForRunnableInCurrentThread_multiple_threads");
     daemonInParentGet.setDaemon(true);
 
+    ForkJoinTask<?> forkJoinTask =
+        commonPool()
+            .submit(
+                () ->
+                    assertNoMockServiceRegistrationsInCommonPool(allStartedGate, servicesSetGate));
+
     Thread withServices =
         new Thread(
             () -> {
@@ -606,8 +599,6 @@ final class MockServicesTest {
                       try {
                         assertTestableServiceInterface1Registration();
 
-                        ExecutorService insideExecutorService = Executors.newCachedThreadPool();
-
                         servicesSetGate.await(TIMEOUT, SECONDS);
 
                         Thread inheritedGet =
@@ -617,28 +608,18 @@ final class MockServicesTest {
 
                         inheritedGet.start();
 
+                        ForkJoinTask<?> forkJoinTaskInside =
+                            commonPool()
+                                .submit(
+                                    () ->
+                                        assertNoMockServiceRegistrationsInCommonPool(
+                                            allStartedGate, servicesSetGate));
+
                         SECONDS.timedJoin(inheritedGet, TIMEOUT);
 
-                        CompletableFuture.runAsync(
-                                MockServicesTest
-                                    ::assertTestableServiceInterface1NegativeRegistration)
-                            .join();
-
-                        CompletableFuture.runAsync(
-                                MockServicesTest::assertTestableServiceInterface1Registration,
-                                insideExecutorService)
-                            .join();
+                        forkJoinTaskInside.quietlyJoin();
 
                         TimeUnit.MILLISECONDS.sleep(50L);
-
-                        insideExecutorService.shutdown();
-                        try {
-                          if (!insideExecutorService.awaitTermination(2, SECONDS)) {
-                            insideExecutorService.shutdownNow();
-                          }
-                        } catch (InterruptedException e) {
-                          insideExecutorService.shutdownNow();
-                        }
 
                         assertTestableServiceInterface1Registration();
                       } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
@@ -667,23 +648,20 @@ final class MockServicesTest {
     SECONDS.timedJoin(delayedInParentGroupGet, TIMEOUT);
     SECONDS.timedJoin(daemonInParentGet, TIMEOUT);
 
-    CompletableFuture.runAsync(
-            MockServicesTest::assertTestableServiceInterface1NegativeRegistration)
-        .join();
-
-    CompletableFuture.runAsync(
-            MockServicesTest::assertTestableServiceInterface1NegativeRegistration, executorService)
-        .join();
+    forkJoinTask.quietlyJoin();
 
     assertTestableServiceInterface1NegativeRegistration();
+  }
 
-    executorService.shutdown();
+  private static void assertNoMockServiceRegistrationsInCommonPool(
+      CyclicBarrier allStartedGate, CyclicBarrier servicesSetGate) {
     try {
-      if (!executorService.awaitTermination(TIMEOUT, SECONDS)) {
-        executorService.shutdownNow();
-      }
-    } catch (InterruptedException e) {
-      executorService.shutdownNow();
+      allStartedGate.await(TIMEOUT, SECONDS);
+      servicesSetGate.await(TIMEOUT, SECONDS);
+
+      assertNoMockServiceRegistrations();
+    } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -901,10 +879,8 @@ final class MockServicesTest {
 
     assertTestableServiceInterface1NegativeRegistration();
 
-    ExecutorService executorService = Executors.newCachedThreadPool();
-
-    CyclicBarrier allStartedGate = new CyclicBarrier(6);
-    CyclicBarrier servicesSetGate = new CyclicBarrier(5);
+    CyclicBarrier allStartedGate = new CyclicBarrier(7);
+    CyclicBarrier servicesSetGate = new CyclicBarrier(6);
 
     Thread delayedGet =
         new Thread(
@@ -938,6 +914,12 @@ final class MockServicesTest {
             "daemonInParentGet-withServicesForCallableInCurrentThread_multiple_threads");
     daemonInParentGet.setDaemon(true);
 
+    ForkJoinTask<?> forkJoinTask =
+        commonPool()
+            .submit(
+                () ->
+                    assertNoMockServiceRegistrationsInCommonPool(allStartedGate, servicesSetGate));
+
     Thread withServices =
         new Thread(
             () -> {
@@ -950,8 +932,6 @@ final class MockServicesTest {
                     () -> {
                       assertTestableServiceInterface1Registration();
 
-                      ExecutorService insideExecutorService = Executors.newCachedThreadPool();
-
                       servicesSetGate.await(TIMEOUT, SECONDS);
 
                       Thread inheritedGet =
@@ -961,27 +941,18 @@ final class MockServicesTest {
 
                       inheritedGet.start();
 
+                      ForkJoinTask<?> forkJoinTaskInside =
+                          commonPool()
+                              .submit(
+                                  () ->
+                                      assertNoMockServiceRegistrationsInCommonPool(
+                                          allStartedGate, servicesSetGate));
+
                       SECONDS.timedJoin(inheritedGet, TIMEOUT);
 
-                      CompletableFuture.runAsync(
-                              MockServicesTest::assertTestableServiceInterface1NegativeRegistration)
-                          .join();
-
-                      CompletableFuture.runAsync(
-                              MockServicesTest::assertTestableServiceInterface1Registration,
-                              insideExecutorService)
-                          .join();
+                      forkJoinTaskInside.quietlyJoin();
 
                       TimeUnit.MILLISECONDS.sleep(50L);
-
-                      insideExecutorService.shutdown();
-                      try {
-                        if (!insideExecutorService.awaitTermination(2, SECONDS)) {
-                          insideExecutorService.shutdownNow();
-                        }
-                      } catch (InterruptedException e) {
-                        insideExecutorService.shutdownNow();
-                      }
 
                       assertTestableServiceInterface1Registration();
 
@@ -1011,24 +982,9 @@ final class MockServicesTest {
     SECONDS.timedJoin(delayedInParentGroupGet, TIMEOUT);
     SECONDS.timedJoin(daemonInParentGet, TIMEOUT);
 
-    CompletableFuture.runAsync(
-            MockServicesTest::assertTestableServiceInterface1NegativeRegistration)
-        .join();
-
-    CompletableFuture.runAsync(
-            MockServicesTest::assertTestableServiceInterface1NegativeRegistration, executorService)
-        .join();
+    forkJoinTask.quietlyJoin();
 
     assertTestableServiceInterface1NegativeRegistration();
-
-    executorService.shutdown();
-    try {
-      if (!executorService.awaitTermination(TIMEOUT, SECONDS)) {
-        executorService.shutdownNow();
-      }
-    } catch (InterruptedException e) {
-      executorService.shutdownNow();
-    }
   }
 
   private static final long TIMEOUT = 10L;

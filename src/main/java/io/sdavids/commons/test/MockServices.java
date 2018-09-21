@@ -44,6 +44,16 @@ import java.util.concurrent.Callable;
 /**
  * Enables one to register mock services.
  *
+ * <h3>Notes</h3>
+ *
+ * <p>Tasks executed via {@link java.util.concurrent.Executor}, {@link
+ * java.util.concurrent.ExecutorService}, or {@link java.util.concurrent.CompletionService} may not
+ * see the registered mock services.
+ *
+ * <p>Tasks executed with either the {@link java.util.concurrent.Executors#defaultThreadFactory()}
+ * or the {@link java.util.concurrent.ForkJoinPool#commonPool()} will not see the registered mock
+ * services.
+ *
  * <h3 id="usage-set-services">Usage JVM-global</h3>
  *
  * <pre><code>
@@ -246,8 +256,6 @@ public final class MockServices {
    *
    * <p>Each mock service class must be public and have a public no-arg constructor.
    *
-   * <p>Each mock service class is accessible from all threads, i.e. JVM-global.
-   *
    * <p><em>Note:</em> {@code MockServices.setServices()} will clear all mock services.
    *
    * @param services the mock services; not null
@@ -273,7 +281,17 @@ public final class MockServices {
       int n = threadGroup.enumerate(threads, true);
       if (n < count) {
         for (int i = 0; i < n; i++) {
-          threads[i].setContextClassLoader(loader);
+          String threadName = threads[i].getClass().getName();
+          if (threadName.endsWith("InnocuousThread")
+              || threadName.endsWith("InnocuousForkJoinWorkerThread")) {
+            continue;
+          }
+
+          try {
+            threads[i].setContextClassLoader(loader);
+          } catch (SecurityException e) {
+            continue;
+          }
         }
         break;
       }
@@ -293,6 +311,8 @@ public final class MockServices {
    *
    * <p><em>Note:</em> Threads started within the task will also have the mock services registered.
    *
+   * <p>Example:
+   *
    * <pre><code>
    * MockServices.withServicesForRunnableInCurrentThread(
    * () -&gt; {
@@ -306,19 +326,6 @@ public final class MockServices {
    *     // providers.next() is MyServiceMock
    *   }).start();
    *   t.join();
-   *
-   *   ExecutorService executorService = Executors.newCachedThreadPool();
-   *
-   *   CompletableFuture.runAsync(
-   *     () -&gt; {
-   *       Iterator&lt;MyService&gt; providers = ServiceLoader.load(MyService.class).iterator();
-   *
-   *       // providers.next() is MyServiceMock
-   *     },
-   *     executorService)
-   *   .join();
-   *
-   *   // ... shutdown executorService
    *
    *   return null;
    * },
@@ -348,6 +355,8 @@ public final class MockServices {
    *
    * <p><em>Note:</em> Threads started within the task will also have the mock services registered.
    *
+   * <p>Example:
+   *
    * <pre><code>
    * MockServices.withServicesForRunnableInCurrentThread(
    * () -&gt; {
@@ -361,19 +370,6 @@ public final class MockServices {
    *     // providers.next() is MyServiceMock
    *   }).start();
    *   t.join();
-   *
-   *   ExecutorService executorService = Executors.newCachedThreadPool();
-   *
-   *   CompletableFuture.runAsync(
-   *     () -&gt; {
-   *       Iterator&lt;MyService&gt; providers = ServiceLoader.load(MyService.class).iterator();
-   *
-   *       // providers.next() is MyServiceMock
-   *     },
-   *     executorService)
-   *   .join();
-   *
-   *   // ... shutdown executorService
    *
    *   return null;
    * },
@@ -406,7 +402,11 @@ public final class MockServices {
       runnable.run();
     } finally {
       if (contextClassLoaderSet) {
-        thread.setContextClassLoader(contextClassLoader);
+        try {
+          thread.setContextClassLoader(contextClassLoader);
+        } catch (SecurityException e) {
+          // ignore
+        }
       }
     }
   }
@@ -426,14 +426,28 @@ public final class MockServices {
       callable.call();
     } finally {
       if (contextClassLoaderSet) {
-        thread.setContextClassLoader(contextClassLoader);
+        try {
+          thread.setContextClassLoader(contextClassLoader);
+        } catch (SecurityException e) {
+          // ignore
+        }
       }
     }
   }
 
   private static boolean setContextClassLoader(Thread thread, Class<?>... services) {
-    // noinspection ClassLoaderInstantiation
-    thread.setContextClassLoader(new ServiceClassLoader(services));
+    String threadName = thread.getClass().getName();
+    if (threadName.endsWith("InnocuousThread")
+        || threadName.endsWith("InnocuousForkJoinWorkerThread")) {
+      return false;
+    }
+
+    try {
+      // noinspection ClassLoaderInstantiation
+      thread.setContextClassLoader(new ServiceClassLoader(services));
+    } catch (SecurityException e) {
+      return false;
+    }
 
     return true;
   }
