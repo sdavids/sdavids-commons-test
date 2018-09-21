@@ -5,5 +5,5 @@ echo
 ./gradlew -Prelease -Psigning.password="${gpgpassword}" \
   clean \
   build \
-  generatePomFileForMavenJavaPublication \
+  publishToMavenLocal \
   bintrayUpload

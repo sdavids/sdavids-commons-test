@@ -26,4 +26,4 @@ The source code can be formatted via:
 
 This module can be installed in a local Maven repository via:
 
- $ ./gradlew install
+ $ ./gradlew publishToMavenLocal -Prelease
