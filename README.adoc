@@ -4,6 +4,8 @@ Sebastian Davids
 image::https://travis-ci.org/sdavids/sdavids-commons-test.svg?branch=master[Build Status]
 image::https://api.bintray.com/packages/sdavids/sdavids/sdavids-commons-test/images/download.svg[link="https://bintray.com/sdavids/sdavids/sdavids-commons-test/_latestVersion"]
 
+Utility methods and classes for writing tests.
+
 == Building from Source
 
 This module can be build via:
