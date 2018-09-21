@@ -231,6 +231,8 @@ tasks.withType(Test).configureEach {
   // injectable singleton needs a new VM for each test case
   forkEvery 1
 
+  failFast = true
+
   reports.junitXml.enabled = false
   reports.html.enabled = project.hasProperty('createReports')
 
