@@ -62,6 +62,18 @@ import java.util.Set;
  * }
  * </code></pre>
  *
+ * <h3 id="usage-current-thread">Usage Current Thread</h3>
+ *
+ * <pre><code>
+ * &#64;Test
+ * void withServicesForRunnableInCurrentThread() {
+ *   MockServices.withServicesForRunnableInCurrentThread(() -&gt; {
+ *     Iterator&lt;MyService&gt; providers = ServiceLoader.load(MyService.class).iterator();
+ *
+ *     // providers.next() is MyServiceMock
+ *   }, MyServiceMock.class);
+ * }
+ *
  * @see java.util.ServiceLoader
  * @since 1.0
  */
@@ -253,6 +265,88 @@ public final class MockServices {
         break;
       }
     }
+  }
+
+  /**
+   * Sets the mock services for the current thread and executes the given {@link Runnable} task.
+   *
+   * <p>Clears any previous mock service registrations before executing the given task; resets the
+   * previous service registrations afterwards.
+   *
+   * <p>Service implementations registered via {@code META-INF/services/} are available after the
+   * ones registered by this method.
+   *
+   * <p>Each mock service class must be public and have a public no-arg constructor.
+   *
+   * <p><em>Note:</em> Threads started within the task will also have the mock services registered.
+   *
+   * <pre><code>
+   * MockServices.withServicesForRunnableInCurrentThread(
+   * () -&gt; {
+   *   Iterator&lt;MyService&gt; providers  = ServiceLoader.load(MyService.class).iterator();
+   *
+   *   // providers.next() is MyServiceMock
+   *
+   *   Thread t = new Thread(() -&gt; {
+   *     Iterator&lt;MyService&gt; providers = ServiceLoader.load(MyService.class).iterator();
+   *
+   *     // providers.next() is MyServiceMock
+   *   }).start();
+   *   t.join();
+   *
+   *   ExecutorService executorService = Executors.newCachedThreadPool();
+   *
+   *   CompletableFuture.runAsync(
+   *     () -&gt; {
+   *       Iterator&lt;MyService&gt; providers = ServiceLoader.load(MyService.class).iterator();
+   *
+   *       // providers.next() is MyServiceMock
+   *     },
+   *     executorService)
+   *   .join();
+   *
+   *   // ... shutdown executorService
+   *
+   *   return null;
+   * },
+   * MyServiceMock.class);
+   * </code></pre>
+   *
+   * @param runnable the runnable task; not null
+   * @param services the mock services; not null
+   * @since 2.0
+   */
+  public static void withServicesForRunnableInCurrentThread(
+      Runnable runnable, Class<?>... services) {
+
+    withServicesForRunnableInThread(Thread.currentThread(), runnable, services);
+  }
+
+  private static void withServicesForRunnableInThread(
+      Thread thread, Runnable runnable, Class<?>... services) {
+
+    requireNonNull(thread, "thread");
+    requireNonNull(runnable, "runnable");
+    requireNonNull(services, "services");
+
+    ClassLoader contextClassLoader = thread.getContextClassLoader();
+
+    boolean contextClassLoaderSet = setContextClassLoader(thread, services);
+
+    try {
+      runnable.run();
+    } finally {
+      if (contextClassLoaderSet) {
+        thread.setContextClassLoader(contextClassLoader);
+      }
+    }
+  }
+
+  private static boolean setContextClassLoader(Thread thread, Class<?>... services) {
+    // noinspection ClassLoaderInstantiation
+    thread.setContextClassLoader(new ServiceClassLoader(services));
+
+    return true;
   }
 
   private MockServices() {}
