@@ -125,6 +125,27 @@ tasks.named('jar').configure {
   exclude('rebel.xml')
 }
 
+tasks.named('javadoc').configure {
+  options.locale = 'en_US'
+  options.encoding = 'UTF-8'
+  options.memberLevel = 'PROTECTED'
+  options.header = "${project.name} ${project.version}"
+  options.docTitle = "${project.name} API"
+  options.links = javadocLinks
+  options.noTimestamp = true
+  options.addBooleanOption('Xdoclint:all', true)
+  if (JavaVersion.current().isJava9Compatible()) {
+    options.addBooleanOption('html5', true)
+  }
+  enabled = false
+}
+
+if (project.hasProperty('createReports')) {
+  tasks.named('javadoc').configure {
+    enabled = true
+  }
+}
+
 tasks.withType(CheckForbiddenApis).configureEach {
   // https://github.com/policeman-tools/forbidden-apis/wiki/BundledSignatures
   bundledSignatures = [
@@ -255,6 +276,10 @@ if (project.hasProperty('release')) {
   apply plugin: 'signing'
   apply plugin: 'maven-publish'
 
+  tasks.named('javadoc').configure {
+    enabled = true
+  }
+
   task javadocJar(type: Jar, dependsOn: 'javadoc') {
     classifier = 'javadoc'
     preserveFileTimestamps = false
@@ -293,15 +318,6 @@ if (project.hasProperty('release')) {
       )
     }
     from sourceSets.main.allSource exclude 'rebel.xml'
-  }
-
-  javadoc {
-    options.encoding = 'UTF-8'
-    options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PROTECTED
-    options.header = "${project.name} ${project.version}"
-    options.docTitle = "${project.name} API"
-    options.links = javadocLinks
-    options.addStringOption '-quiet'
   }
 
   artifacts {
