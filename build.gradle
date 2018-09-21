@@ -207,7 +207,7 @@ spotless {
         'README.adoc',
         'release.sh',
         'CODING_STYLE.txt',
-        'AUTHORS', 'CONTRIBUTORS', 'LICENSE', 'NOTICE'
+        'AUTHORS', 'CONTRIBUTORS', 'LICENSE', 'NOTICE', 'TODO'
     trimTrailingWhitespace()
     endWithNewline()
   }

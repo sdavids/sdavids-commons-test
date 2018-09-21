@@ -10,6 +10,7 @@ AUTHORS         text
 CONTRIBUTORS    text
 LICENSE         text
 NOTICE          text
+TODO            text
 *.adoc          text
 *.txt           text
 *.yml           text
