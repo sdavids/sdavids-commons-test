@@ -17,6 +17,7 @@ package io.sdavids.commons.test;
 
 import static java.util.ServiceLoader.load;
 import static java.util.concurrent.ForkJoinPool.commonPool;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
@@ -30,7 +31,6 @@ import java.util.Iterator;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
@@ -265,7 +265,7 @@ final class MockServicesTest {
             () -> {
               try {
                 gate.await(TIMEOUT, SECONDS);
-                TimeUnit.MILLISECONDS.sleep(10L);
+                MILLISECONDS.sleep(10L);
               } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
                 throw new IllegalStateException(e);
               }
@@ -619,7 +619,7 @@ final class MockServicesTest {
 
                         forkJoinTaskInside.quietlyJoin();
 
-                        TimeUnit.MILLISECONDS.sleep(50L);
+                        MILLISECONDS.sleep(50L);
 
                         assertTestableServiceInterface1Registration();
                       } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
@@ -952,7 +952,7 @@ final class MockServicesTest {
 
                       forkJoinTaskInside.quietlyJoin();
 
-                      TimeUnit.MILLISECONDS.sleep(50L);
+                      MILLISECONDS.sleep(50L);
 
                       assertTestableServiceInterface1Registration();
 
