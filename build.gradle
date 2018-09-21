@@ -250,10 +250,6 @@ wrapper {
   gradleVersion = '4.10.2'
 }
 
-tasks.withType(Test) { task ->
-  task.testLogging.exceptionFormat = 'full'
-}
-
 if (project.hasProperty('release')) {
 
   apply plugin: 'signing'
