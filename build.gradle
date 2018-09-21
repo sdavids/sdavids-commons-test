@@ -18,7 +18,6 @@ import com.github.spotbugs.SpotBugsTask
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import net.ltgt.gradle.errorprone.CheckSeverity
 
-// https://plugins.gradle.org/
 plugins {
   id 'com.gradle.build-scan' version '1.16'
   id 'java-library'
@@ -37,7 +36,6 @@ plugins {
 ext {
   rootPackageName = 'io.sdavids.commons.test'
 
-  // https://bintray.com/bintray/jcenter
   errorproneVersion = '2.3.1'
   errorproneJavacVersion = '9+181-r4173-1'
   checkstyleVersion = '8.12'
@@ -85,7 +83,6 @@ tasks.withType(JavaCompile).configureEach {
   options.encoding = 'UTF-8'
   options.debugOptions.debugLevel = 'source,lines,vars'
   options.deprecation = true
-  // https://docs.oracle.com/javase/10/tools/javac.htm#GUID-AEEC9F07-CB49-4E96-8BC7-BCC2C7F725C9__ENABLEORDISABLEWARNINGSWITHTHE-XLIN-7D3DB0EE
   options.compilerArgs += ['-parameters', '-Xlint:all,-processing,-path', '-Werror']
   options.errorprone {
     disableWarningsInGeneratedCode = true
@@ -144,7 +141,6 @@ if (project.hasProperty('createReports')) {
 }
 
 tasks.withType(CheckForbiddenApis).configureEach {
-  // https://github.com/policeman-tools/forbidden-apis/wiki/BundledSignatures
   bundledSignatures = [
       'jdk-unsafe',
       'jdk-deprecated',
