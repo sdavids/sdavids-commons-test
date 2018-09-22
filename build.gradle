@@ -242,8 +242,7 @@ tasks.withType(Test).configureEach {
   systemProperty 'user.country', System.properties['user.country']
   systemProperty 'java.awt.headless', 'true'
 
-  // injectable singleton needs a new VM for each test case
-  forkEvery 1
+  maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 
   failFast = true
 
