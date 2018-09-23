@@ -15,7 +15,6 @@
  */
 package io.sdavids.commons.test;
 
-@SuppressWarnings("InterfaceWithOnlyOneDirectInheritor")
 @FunctionalInterface
 public interface ServiceInterface2 {
 

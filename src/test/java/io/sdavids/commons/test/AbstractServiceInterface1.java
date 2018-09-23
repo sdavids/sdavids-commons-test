@@ -15,7 +15,6 @@
  */
 package io.sdavids.commons.test;
 
-@SuppressWarnings({"AbstractClassWithoutAbstractMethods", "AbstractClassNeverImplemented"})
 public abstract class AbstractServiceInterface1 implements ServiceInterface1 {
 
   @Override

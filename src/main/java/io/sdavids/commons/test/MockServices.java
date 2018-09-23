@@ -102,10 +102,8 @@ import java.util.concurrent.Callable;
  */
 public final class MockServices {
 
-  @SuppressWarnings("CustomClassloader")
   private static final class ServiceClassLoader extends ClassLoader {
 
-    @SuppressWarnings("HardcodedFileSeparator")
     private static final String META_INF_SERVICES = "META-INF/services/";
 
     private final Set<Class<?>> services;
@@ -145,7 +143,6 @@ public final class MockServices {
       return r.hasMoreElements() ? r.nextElement() : null;
     }
 
-    @SuppressWarnings("OverlyBroadThrowsClause")
     @Override
     public Enumeration<URL> getResources(String name) throws IOException {
       Enumeration<URL> resources = super.getResources(name);
@@ -220,7 +217,6 @@ public final class MockServices {
 
   private static final class ServiceStreamHandler extends URLStreamHandler {
 
-    @SuppressWarnings("PackageVisibleField")
     final byte[] bytes;
 
     ServiceStreamHandler(ByteArrayOutputStream baos) {
@@ -229,8 +225,6 @@ public final class MockServices {
 
     @Override
     protected URLConnection openConnection(URL u) {
-      // noinspection
-      // AnonymousInnerClass,ReturnOfInnerClass,AnonymousInnerClassWithTooManyMethods,InnerClassTooDeeplyNested
       return new URLConnection(u) {
 
         @Override
@@ -256,8 +250,6 @@ public final class MockServices {
    *
    * <p>Each mock service class must be public and have a public no-arg constructor.
    *
-   * <p><em>Note:</em> {@code MockServices.setServices()} will clear all mock services.
-   *
    * @param services the mock services; not null
    * @since 1.0
    */
@@ -265,18 +257,15 @@ public final class MockServices {
   public static void setServices(Class<?>... services) {
     requireNonNull(services, "services");
 
-    // noinspection ClassLoaderInstantiation
     ClassLoader loader = new ServiceClassLoader(services);
 
     ThreadGroup threadGroup = Thread.currentThread().getThreadGroup();
-    // noinspection MethodCallInLoopCondition
     while (threadGroup.getParent() != null) {
       threadGroup = threadGroup.getParent();
     }
 
     while (true) {
       int count = threadGroup.activeCount() + 1;
-      // noinspection ObjectAllocationInLoop
       Thread[] threads = new Thread[count];
       int n = threadGroup.enumerate(threads, true);
       if (n < count) {
@@ -443,7 +432,6 @@ public final class MockServices {
     }
 
     try {
-      // noinspection ClassLoaderInstantiation
       thread.setContextClassLoader(new ServiceClassLoader(services));
     } catch (SecurityException e) {
       return false;
