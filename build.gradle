@@ -44,6 +44,7 @@ ext {
   findsecbugsVersion = '1.8.0'
   java8SignatureVersion = '1.0'
   jacocoVersion = '0.8.2'
+  jsr305Version = '3.0.2'
   junitVersion = '5.3.1'
   assertjVersion = '3.11.1'
 
@@ -69,6 +70,8 @@ dependencies {
   pmd "net.sourceforge.pmd:pmd-core:${pmdVersion}"
   pmd "net.sourceforge.pmd:pmd-java:${pmdVersion}"
   spotbugsPlugins "com.h3xstream.findsecbugs:findsecbugs-plugin:${findsecbugsVersion}"
+
+  compileOnly "com.google.code.findbugs:jsr305:${jsr305Version}"
 
   testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
   testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
