@@ -13,4 +13,12 @@
     <Class name="io.sdavids.commons.test.MockServices"/>
     <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
   </Match>
+  <Match>
+    <!-- TODO restrict to test classes - https://github.com/spotbugs/spotbugs/issues/498 -->
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+  <Match>
+    <!-- TODO restrict to test classes - https://github.com/spotbugs/spotbugs/issues/498 -->
+    <Bug pattern="SIC_INNER_SHOULD_BE_STATIC"/>
+  </Match>
 </FindBugsFilter>

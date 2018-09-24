@@ -1,5 +1,6 @@
 Plugin Issues:
   - https://github.com/bintray/gradle-bintray-plugin/issues/255
+  - https://github.com/spotbugs/spotbugs/issues/498
 
 Gradle 5:
  - remove enableFeaturePreview from settings.gradle
