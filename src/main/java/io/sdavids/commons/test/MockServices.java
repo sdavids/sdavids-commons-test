@@ -288,6 +288,25 @@ public final class MockServices {
   }
 
   /**
+   * Sets (or resets) the mock services for the given thread.
+   *
+   * <p>Clears any previous mock service registrations of that thread.
+   *
+   * <p>Service implementations registered via {@code META-INF/services/} are available after the
+   * ones registered by this method.
+   *
+   * <p>Each mock service class must be public and have a public no-arg constructor.
+   *
+   * @param thread the thread; not null
+   * @param services the mock services; not null
+   * @return {@code true} if the mock services have been registered; false otherwise
+   * @since 2.0
+   */
+  public static boolean setServicesForThread(Thread thread, Class<?>... services) {
+    return internalSetServicesForThread(requireNonNull(thread, "thread"), services);
+  }
+
+  /**
    * Sets the mock services for the current thread and executes the given {@link Runnable} task.
    *
    * <p>Clears any previous mock service registrations before executing the given task; resets the
@@ -385,7 +404,7 @@ public final class MockServices {
 
     ClassLoader contextClassLoader = thread.getContextClassLoader();
 
-    boolean contextClassLoaderSet = setContextClassLoader(thread, services);
+    boolean contextClassLoaderSet = internalSetServicesForThread(thread, services);
 
     try {
       runnable.run();
@@ -409,7 +428,7 @@ public final class MockServices {
 
     ClassLoader contextClassLoader = thread.getContextClassLoader();
 
-    boolean contextClassLoaderSet = setContextClassLoader(thread, services);
+    boolean contextClassLoaderSet = internalSetServicesForThread(thread, services);
 
     try {
       callable.call();
@@ -424,7 +443,7 @@ public final class MockServices {
     }
   }
 
-  private static boolean setContextClassLoader(Thread thread, Class<?>... services) {
+  private static boolean internalSetServicesForThread(Thread thread, Class<?>... services) {
     String threadName = thread.getClass().getName();
     if (threadName.endsWith("InnocuousThread")
         || threadName.endsWith("InnocuousForkJoinWorkerThread")) {
