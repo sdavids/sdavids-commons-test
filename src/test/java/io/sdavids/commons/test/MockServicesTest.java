@@ -1042,11 +1042,11 @@ class MockServicesTest {
 
     Thread currentThread = Thread.currentThread();
 
-    assumeThat(serviceInterface1).as("Thread: %s", currentThread).isNotNull();
+    assertThat(serviceInterface1).as("Thread: %s", currentThread).isNotNull();
     assertThat(serviceInterface1)
         .as("Thread: %s", currentThread)
         .isInstanceOf(TestableServiceInterface1Negative.class);
-    assumeThat(serviceInterface1.value()).as("Thread: %s", currentThread).isEqualTo(-1);
+    assertThat(serviceInterface1.value()).as("Thread: %s", currentThread).isEqualTo(-1);
   }
 
   private static void assertIsTestableServiceInterface2(ServiceInterface2 serviceInterface2) {
