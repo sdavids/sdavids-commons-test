@@ -46,7 +46,7 @@ class MockServicesTest {
   class SetServices {
 
     @Test
-    void withNull() {
+    void withServicesNull() {
       assertThrows(
           NullPointerException.class,
           () -> MockServices.setServices((Class<?>[]) null),
@@ -387,6 +387,29 @@ class MockServicesTest {
               MockServices.withServicesForRunnableInCurrentThread(
                   null, TestableServiceInterface1.class),
           "runnable");
+
+      assertIsTestableServiceInterface1Negative(
+          thread, getServiceInterface(thread, ServiceInterface1.class));
+      assertIsTestableServiceInterface2Negative(
+          thread, getServiceInterface(thread, ServiceInterface2.class));
+    }
+
+    @Test
+    void withServicesNull() {
+      MockServices.setServices(
+          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
+
+      Thread thread = currentThread();
+
+      assertIsTestableServiceInterface1Negative(
+          thread, getServiceInterface(thread, ServiceInterface1.class));
+      assertIsTestableServiceInterface2Negative(
+          thread, getServiceInterface(thread, ServiceInterface2.class));
+
+      assertThrows(
+          NullPointerException.class,
+          () -> MockServices.withServicesForRunnableInCurrentThread(() -> {}, (Class<?>[]) null),
+          "services");
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -755,6 +778,7 @@ class MockServicesTest {
 
   @Nested
   class WithServicesForCallableInCurrentThread {
+
     @Test
     void withCallableNull() {
       MockServices.setServices(
@@ -773,6 +797,29 @@ class MockServicesTest {
               MockServices.withServicesForCallableInCurrentThread(
                   null, TestableServiceInterface1.class),
           "callable");
+
+      assertIsTestableServiceInterface1Negative(
+          thread, getServiceInterface(thread, ServiceInterface1.class));
+      assertIsTestableServiceInterface2Negative(
+          thread, getServiceInterface(thread, ServiceInterface2.class));
+    }
+
+    @Test
+    void withServicesNull() {
+      MockServices.setServices(
+          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
+
+      Thread thread = currentThread();
+
+      assertIsTestableServiceInterface1Negative(
+          thread, getServiceInterface(thread, ServiceInterface1.class));
+      assertIsTestableServiceInterface2Negative(
+          thread, getServiceInterface(thread, ServiceInterface2.class));
+
+      assertThrows(
+          NullPointerException.class,
+          () -> MockServices.withServicesForCallableInCurrentThread(() -> null, (Class<?>[]) null),
+          "services");
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
