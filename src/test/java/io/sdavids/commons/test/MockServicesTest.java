@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 @SuppressWarnings("ClassCanBeStatic")
 class MockServicesTest {
@@ -131,7 +132,7 @@ class MockServicesTest {
 
     @SuppressWarnings("PMD.AvoidThreadGroup")
     @Test
-    void accessibleByAllThreads() throws InterruptedException {
+    void accessibleByAllThreads(TestInfo testInfo) throws InterruptedException {
       ThreadGroup parentThreadGroup = Thread.currentThread().getThreadGroup().getParent();
 
       assumeThat(parentThreadGroup).isNotNull();
@@ -150,7 +151,7 @@ class MockServicesTest {
                 serviceInterface1InThread[0] = getServiceInterface(ServiceInterface1.class);
                 serviceInterface2InThread[0] = getServiceInterface(ServiceInterface2.class);
               },
-              "threadSameThreadGroup-accessibleByAllThreads");
+              "threadSameThreadGroup-" + testInfo.getDisplayName());
       threadSameThreadGroup.start();
       SECONDS.timedJoin(threadSameThreadGroup, TIMEOUT);
 
@@ -161,7 +162,7 @@ class MockServicesTest {
                 serviceInterface1InThread[1] = getServiceInterface(ServiceInterface1.class);
                 serviceInterface2InThread[1] = getServiceInterface(ServiceInterface2.class);
               },
-              "threadParentThreadGroup-accessibleByAllThreads");
+              "threadParentThreadGroup-" + testInfo.getDisplayName());
       threadParentThreadGroup.start();
       SECONDS.timedJoin(threadParentThreadGroup, TIMEOUT);
 
@@ -178,7 +179,7 @@ class MockServicesTest {
 
     @SuppressWarnings("PMD.AvoidThreadGroup")
     @Test
-    void accessibleByMultipleThreads()
+    void accessibleByMultipleThreads(TestInfo testInfo)
         throws BrokenBarrierException, InterruptedException, TimeoutException {
 
       ThreadGroup parentThreadGroup = Thread.currentThread().getThreadGroup().getParent();
@@ -193,14 +194,14 @@ class MockServicesTest {
               () ->
                   assertTestableServiceInterface1RegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "delayedGet-accessibleByMultipleThreads");
+              "delayedGet-" + testInfo.getDisplayName());
 
       Thread daemonGet =
           new Thread(
               () ->
                   assertTestableServiceInterface1RegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "daemonGet-accessibleByMultipleThreads");
+              "daemonGet-" + testInfo.getDisplayName());
       daemonGet.setDaemon(true);
 
       Thread delayedInParentGroupGet =
@@ -209,7 +210,7 @@ class MockServicesTest {
               () ->
                   assertTestableServiceInterface1RegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "delayedInParentGroupGet-accessibleByMultipleThreads");
+              "delayedInParentGroupGet-" + testInfo.getDisplayName());
 
       Thread daemonInParentGet =
           new Thread(
@@ -217,7 +218,7 @@ class MockServicesTest {
               () ->
                   assertTestableServiceInterface1RegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "daemonInParentGet-accessibleByMultipleThreads");
+              "daemonInParentGet-" + testInfo.getDisplayName());
       daemonInParentGet.setDaemon(true);
 
       ForkJoinTask<?> forkJoinTask =
@@ -251,7 +252,7 @@ class MockServicesTest {
     }
 
     @Test
-    void setContextClassLoaderThrowsSecurityException()
+    void setContextClassLoaderThrowsSecurityException(TestInfo testInfo)
         throws InterruptedException, BrokenBarrierException, TimeoutException {
 
       CyclicBarrier gate = new CyclicBarrier(3);
@@ -268,7 +269,7 @@ class MockServicesTest {
                   throw new IllegalStateException(e);
                 }
               },
-              "exceptionThrowingThread-setContextClassLoaderThrowsSecurityException") {
+              "exceptionThrowingThread-" + testInfo.getDisplayName()) {
 
             @Override
             public void setContextClassLoader(ClassLoader cl) {
@@ -287,7 +288,7 @@ class MockServicesTest {
                   throw new IllegalStateException(e);
                 }
               },
-              "setServicesThread-setContextClassLoaderThrowsSecurityException");
+              "setServicesThread-" + testInfo.getDisplayName());
 
       assumeThat(getServiceInterface(ServiceInterface1.class)).isNull();
 
@@ -501,7 +502,8 @@ class MockServicesTest {
     }
 
     @Test
-    void setContextClassLoaderThrowsSecurityException() throws InterruptedException {
+    void setContextClassLoaderThrowsSecurityException(TestInfo testInfo)
+        throws InterruptedException {
 
       MockServices.setServices(TestableServiceInterface1Negative.class);
 
@@ -517,7 +519,7 @@ class MockServicesTest {
                           assertIsTestableServiceInterface1Negative(
                               getServiceInterface(ServiceInterface1.class)),
                       TestableServiceInterface1.class),
-              "setServicesThread-withServicesForRunnableInCurrentThread_runnable_thread_setContextClassLoader_throws_SecurityException") {
+              "setServicesThread-" + testInfo.getDisplayName()) {
 
             @Override
             public void setContextClassLoader(ClassLoader cl) {
@@ -537,7 +539,7 @@ class MockServicesTest {
 
     @SuppressWarnings("PMD.AvoidThreadGroup")
     @Test
-    void accessibleByCurrentThreadAndThreadStartedWithin()
+    void accessibleByCurrentThreadAndThreadStartedWithin(TestInfo testInfo)
         throws BrokenBarrierException, InterruptedException, TimeoutException {
 
       ThreadGroup parentThreadGroup = Thread.currentThread().getThreadGroup().getParent();
@@ -556,14 +558,14 @@ class MockServicesTest {
               () ->
                   assertTestableServiceInterface1NegativeRegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "delayedGet-withServicesForRunnableInCurrentThread_multiple_threads");
+              "delayedGet-" + testInfo.getDisplayName());
 
       Thread daemonGet =
           new Thread(
               () ->
                   assertTestableServiceInterface1NegativeRegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "daemonGet-withServicesForRunnableInCurrentThread_multiple_threads");
+              "daemonGet-" + testInfo.getDisplayName());
       daemonGet.setDaemon(true);
 
       Thread delayedInParentGroupGet =
@@ -572,7 +574,7 @@ class MockServicesTest {
               () ->
                   assertTestableServiceInterface1NegativeRegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "delayedInParentGroupGet-withServicesForRunnableInCurrentThread_multiple_threads");
+              "delayedInParentGroupGet-" + testInfo.getDisplayName());
 
       Thread daemonInParentGet =
           new Thread(
@@ -580,7 +582,7 @@ class MockServicesTest {
               () ->
                   assertTestableServiceInterface1NegativeRegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "daemonInParentGet-withServicesForRunnableInCurrentThread_multiple_threads");
+              "daemonInParentGet-" + testInfo.getDisplayName());
       daemonInParentGet.setDaemon(true);
 
       ForkJoinTask<?> forkJoinTask =
@@ -608,7 +610,7 @@ class MockServicesTest {
                           Thread inheritedGet =
                               new Thread(
                                   MockServicesTest::assertTestableServiceInterface1Registration,
-                                  "inheritedGet-withServicesForRunnableInCurrentThread_multiple_threads");
+                                  "inheritedGet-" + testInfo.getDisplayName());
 
                           inheritedGet.start();
 
@@ -639,7 +641,7 @@ class MockServicesTest {
                   throw new IllegalStateException(e);
                 }
               },
-              "withServices-withServicesForRunnableInCurrentThread_multiple_threads");
+              "withServices-" + testInfo.getDisplayName());
 
       withServices.start();
       delayedGet.start();
@@ -822,7 +824,8 @@ class MockServicesTest {
     }
 
     @Test
-    void setContextClassLoaderThrowsSecurityException() throws InterruptedException {
+    void setContextClassLoaderThrowsSecurityException(TestInfo testInfo)
+        throws InterruptedException {
 
       MockServices.setServices(TestableServiceInterface1Negative.class);
 
@@ -845,7 +848,7 @@ class MockServicesTest {
                   throw new IllegalStateException(e);
                 }
               },
-              "setServicesThread-withServicesForCallableInCurrentThread_callable_thread_setContextClassLoader_throws_SecurityException") {
+              "setServicesThread-" + testInfo.getDisplayName()) {
 
             @Override
             public void setContextClassLoader(ClassLoader cl) {
@@ -865,7 +868,7 @@ class MockServicesTest {
 
     @SuppressWarnings("PMD.AvoidThreadGroup")
     @Test
-    void accessibleByCurrentThreadAndThreadStartedWithin()
+    void accessibleByCurrentThreadAndThreadStartedWithin(TestInfo testInfo)
         throws BrokenBarrierException, InterruptedException, TimeoutException {
 
       ThreadGroup parentThreadGroup = Thread.currentThread().getThreadGroup().getParent();
@@ -884,14 +887,14 @@ class MockServicesTest {
               () ->
                   assertTestableServiceInterface1NegativeRegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "delayedGet-withServicesForCallableInCurrentThread_multiple_threads");
+              "delayedGet-" + testInfo.getDisplayName());
 
       Thread daemonGet =
           new Thread(
               () ->
                   assertTestableServiceInterface1NegativeRegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "daemonGet-withServicesForCallableInCurrentThread_multiple_threads");
+              "daemonGet-" + testInfo.getDisplayName());
       daemonGet.setDaemon(true);
 
       Thread delayedInParentGroupGet =
@@ -900,7 +903,7 @@ class MockServicesTest {
               () ->
                   assertTestableServiceInterface1NegativeRegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "delayedInParentGroupGet-withServicesForCallableInCurrentThread_multiple_threads");
+              "delayedInParentGroupGet-" + testInfo.getDisplayName());
 
       Thread daemonInParentGet =
           new Thread(
@@ -908,7 +911,7 @@ class MockServicesTest {
               () ->
                   assertTestableServiceInterface1NegativeRegistrationRunnable(
                       allStartedGate, servicesSetGate),
-              "daemonInParentGet-withServicesForCallableInCurrentThread_multiple_threads");
+              "daemonInParentGet-" + testInfo.getDisplayName());
       daemonInParentGet.setDaemon(true);
 
       ForkJoinTask<?> forkJoinTask =
@@ -935,7 +938,7 @@ class MockServicesTest {
                         Thread inheritedGet =
                             new Thread(
                                 MockServicesTest::assertTestableServiceInterface1Registration,
-                                "inheritedGet-withServicesForCallableInCurrentThread_multiple_threads");
+                                "inheritedGet-" + testInfo.getDisplayName());
 
                         inheritedGet.start();
 
@@ -965,7 +968,7 @@ class MockServicesTest {
 
                 assertTestableServiceInterface1NegativeRegistration();
               },
-              "withServices-withServicesForCallableInCurrentThread_multiple_threads");
+              "withServices-" + testInfo.getDisplayName());
 
       withServices.start();
       delayedGet.start();
