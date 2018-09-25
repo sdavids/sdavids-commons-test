@@ -288,6 +288,24 @@ public final class MockServices {
   }
 
   /**
+   * Sets (or resets) the mock services for the current thread.
+   *
+   * <p>Clears any previous mock service registrations of the current thread.
+   *
+   * <p>Service implementations registered via {@code META-INF/services/} are available after the
+   * ones registered by this method.
+   *
+   * <p>Each mock service class must be public and have a public no-arg constructor.
+   *
+   * @param services the mock services; not null
+   * @return {@code true} if the mock services have been registered; false otherwise
+   * @since 2.0
+   */
+  public static boolean setServicesForCurrentThread(Class<?>... services) {
+    return internalSetServicesForThread(Thread.currentThread(), services);
+  }
+
+  /**
    * Sets (or resets) the mock services for the given thread.
    *
    * <p>Clears any previous mock service registrations of that thread.
