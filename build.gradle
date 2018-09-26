@@ -125,6 +125,67 @@ tasks.named('jar').configure {
   exclude('rebel.xml')
 }
 
+tasks.withType(Test).configureEach {
+  useJUnitPlatform()
+
+  systemProperty 'user.timezone', System.properties['user.timezone']
+  systemProperty 'user.language', System.properties['user.language']
+  systemProperty 'user.country', System.properties['user.country']
+  systemProperty 'java.awt.headless', 'true'
+
+  maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+
+  // TODO: https://github.com/gradle/gradle/issues/6453
+  forkEvery = 1
+  //
+
+  failFast = true
+
+  reports.junitXml.enabled = false
+  reports.html.enabled = project.hasProperty('createReports')
+
+  testLogging {
+    exceptionFormat = 'full'
+  }
+}
+
+spotless {
+  format 'misc', {
+    target '.gitattributes', '.gitignore',
+        'README.adoc',
+        'release.sh',
+        'CODING_STYLE.txt',
+        'AUTHORS', 'CONTRIBUTORS', 'LICENSE', 'NOTICE', 'TODO'
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
+  format 'properties', {
+    target 'gradle.properties', 'src/**/*.properties'
+    encoding 'ISO-8859-1'
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
+  format 'yaml', {
+    target '.travis.yml'
+    indentWithSpaces 2
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
+  format 'xml', {
+    target 'gradle/conf/**/*.xml'
+    indentWithSpaces 2
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
+  java {
+    googleJavaFormat '1.6'
+    licenseHeaderFile "${project.projectDir}/gradle/conf/spotless-license-java.txt"
+  }
+  groovyGradle {
+    target 'build.gradle', 'settings.gradle'
+  }
+}
+
 tasks.named('javadoc').configure {
   options.locale = 'en_US'
   options.encoding = 'UTF-8'
@@ -192,72 +253,19 @@ jacoco {
   toolVersion = "${jacocoVersion}"
 }
 
-jacocoTestReport {
-  reports {
-    xml.enabled false
-    html.enabled project.hasProperty('createReports')
-  }
-}
-
 if (project.hasProperty('createReports')) {
+
+  jacocoTestReport {
+    executionData test
+    reports {
+      xml.enabled false
+      html.enabled project.hasProperty('createReports')
+      html.destination project.file("${buildDir}/reports/jacoco")
+    }
+  }
+
+  jacocoTestReport.dependsOn test
   check.dependsOn jacocoTestReport
-}
-
-spotless {
-  format 'misc', {
-    target '.gitattributes', '.gitignore',
-        'README.adoc',
-        'release.sh',
-        'CODING_STYLE.txt',
-        'AUTHORS', 'CONTRIBUTORS', 'LICENSE', 'NOTICE', 'TODO'
-    trimTrailingWhitespace()
-    endWithNewline()
-  }
-  format 'properties', {
-    target 'gradle.properties'
-    encoding 'ISO-8859-1'
-    trimTrailingWhitespace()
-    endWithNewline()
-  }
-  format 'yaml', {
-    target '.travis.yml'
-    indentWithSpaces 2
-    trimTrailingWhitespace()
-    endWithNewline()
-  }
-  format 'xml', {
-    target 'gradle/conf/**/*.xml'
-    indentWithSpaces 2
-    trimTrailingWhitespace()
-    endWithNewline()
-  }
-  java {
-    googleJavaFormat '1.6'
-    licenseHeaderFile "${project.projectDir}/gradle/conf/spotless-license-java.txt"
-  }
-  groovyGradle {
-    target 'build.gradle', 'settings.gradle'
-  }
-}
-
-tasks.withType(Test).configureEach {
-  useJUnitPlatform()
-
-  systemProperty 'user.timezone', System.properties['user.timezone']
-  systemProperty 'user.language', System.properties['user.language']
-  systemProperty 'user.country', System.properties['user.country']
-  systemProperty 'java.awt.headless', 'true'
-
-  maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
-
-  failFast = true
-
-  reports.junitXml.enabled = false
-  reports.html.enabled = project.hasProperty('createReports')
-
-  testLogging {
-    exceptionFormat = 'full'
-  }
 }
 
 buildScan {
