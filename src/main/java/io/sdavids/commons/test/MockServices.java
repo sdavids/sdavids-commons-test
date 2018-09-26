@@ -23,6 +23,7 @@ import static java.util.Arrays.stream;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
+import static org.apiguardian.api.API.Status.STABLE;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -40,6 +41,7 @@ import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import org.apiguardian.api.API;
 
 /**
  * Enables one to register mock services.
@@ -100,6 +102,7 @@ import java.util.concurrent.Callable;
  * @see java.util.ServiceLoader
  * @since 1.0
  */
+@API(status = STABLE, since = "1.0")
 public final class MockServices {
 
   private static final class ServiceClassLoader extends ClassLoader {
@@ -301,6 +304,7 @@ public final class MockServices {
    * @return {@code true} if the mock services have been registered; false otherwise
    * @since 2.0
    */
+  @API(status = STABLE, since = "2.0")
   public static boolean setServicesForCurrentThread(Class<?>... services) {
     return internalSetServicesForThread(Thread.currentThread(), services);
   }
@@ -320,6 +324,7 @@ public final class MockServices {
    * @return {@code true} if the mock services have been registered; false otherwise
    * @since 2.0
    */
+  @API(status = STABLE, since = "2.0")
   public static boolean setServicesForThread(Thread thread, Class<?>... services) {
     return internalSetServicesForThread(requireNonNull(thread, "thread"), services);
   }
@@ -362,6 +367,7 @@ public final class MockServices {
    * @param services the mock services; not null
    * @since 2.0
    */
+  @API(status = STABLE, since = "2.0")
   public static void withServicesForRunnableInCurrentThread(
       Runnable runnable, Class<?>... services) {
 
@@ -407,6 +413,7 @@ public final class MockServices {
    * @throws Exception if the given callable throws an exception
    * @since 2.0
    */
+  @API(status = STABLE, since = "2.0")
   public static void withServicesForCallableInCurrentThread(
       Callable<?> callable, Class<?>... services) throws Exception {
 
