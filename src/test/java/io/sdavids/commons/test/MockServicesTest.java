@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.sdavids.commons.test.WithThreadExtension.WithThread;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -35,367 +36,25 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @SuppressWarnings("ClassCanBeStatic")
 class MockServicesTest {
 
-  @Nested
-  class SetServices {
-
-    @Test
-    void withServicesNull() {
-      assertThrows(
-          NullPointerException.class,
-          () -> MockServices.setServices((Class<?>[]) null),
-          "services");
-
-      assertNoMockServiceRegistrations(currentThread());
-    }
-
-    @Test
-    void withClassHavingNonPublicNoArgCtor() {
-      assertThrows(
-          IllegalArgumentException.class,
-          () -> MockServices.setServices(NonPublicNoArgCtorServiceInterface1.class),
-          "Class io.sdavids.commons.test.NonPublicNoArgCtorServiceInterface1 has no public no-arg constructor");
-
-      assertNoMockServiceRegistrations(currentThread());
-    }
-
-    @Test
-    void withAbstractClass() {
-      assertThrows(
-          IllegalArgumentException.class,
-          () -> MockServices.setServices(AbstractServiceInterface1.class),
-          "Class io.sdavids.commons.test.AbstractServiceInterface1 must be a public non-abstract class");
-
-      assertNoMockServiceRegistrations(currentThread());
-    }
-
-    @Test
-    void withNonPublicClass() {
-      assertThrows(
-          IllegalArgumentException.class,
-          () -> MockServices.setServices(NonPublicServiceInterface1.class),
-          "Class io.sdavids.commons.test.NonPublicServiceInterface1 must be a public non-abstract class");
-
-      assertNoMockServiceRegistrations(currentThread());
-    }
-
-    @Test
-    void clearsServices() {
-      MockServices.setServices(TestableServiceInterface1.class);
-
-      Thread thread = currentThread();
-
-      assumeThat(getServiceInterface(thread, ServiceInterface1.class)).isNotNull();
-
-      MockServices.setServices();
-
-      assertNoMockServiceRegistrations(thread);
-    }
-
-    @Test
-    void returnsOne() {
-      MockServices.setServices(TestableServiceInterface1.class);
-
-      Thread thread = currentThread();
-
-      assertTestableServiceInterface1Registration(thread);
-      assertThat(getServiceInterface(thread, ServiceInterface2.class)).isNull();
-      assertIsRegisteredServiceInterface3(
-          thread, getServiceInterface(thread, ServiceInterface3.class));
-    }
-
-    @Test
-    void returnsSeveral() {
-      MockServices.setServices(TestableServiceInterface2.class, TestableServiceInterface1.class);
-
-      Thread thread = currentThread();
-
-      assertIsTestableServiceInterface1(
-          thread, getServiceInterface(thread, ServiceInterface1.class));
-      assertIsTestableServiceInterface2(
-          thread, getServiceInterface(thread, ServiceInterface2.class));
-      assertIsRegisteredServiceInterface3(
-          thread, getServiceInterface(thread, ServiceInterface3.class));
-    }
-
-    @Test
-    void returnsRegistered() {
-      assertNoMockServiceRegistrations(currentThread());
-    }
-
-    @Test
-    void returnsRegistedLast() {
-      MockServices.setServices(TestableServiceInterface3.class);
-
-      Thread thread = currentThread();
-
-      Iterator<ServiceInterface3> providers = getServiceProviders(thread, ServiceInterface3.class);
-
-      assertIsTestableServiceInterface3(thread, providers.next());
-      assertIsRegisteredServiceInterface3(thread, providers.next());
-
-      assertThat(providers.hasNext()).isFalse();
-    }
-
-    @SuppressWarnings("PMD.AvoidThreadGroup")
-    @Test
-    void accessibleByAllThreads(TestInfo testInfo) throws InterruptedException {
-      Thread thread = currentThread();
-      ThreadGroup parentThreadGroup = thread.getThreadGroup().getParent();
-
-      assumeThat(parentThreadGroup).isNotNull();
-
-      MockServices.setServices(TestableServiceInterface1.class);
-
-      ServiceInterface1 serviceInterface1 = getServiceInterface(thread, ServiceInterface1.class);
-      ServiceInterface1[] serviceInterface1InThread = new ServiceInterface1[2];
-
-      ServiceInterface2 serviceInterface2 = getServiceInterface(thread, ServiceInterface2.class);
-      ServiceInterface2[] serviceInterface2InThread = new ServiceInterface2[2];
-
-      Thread threadSameThreadGroup =
-          new Thread(
-              () -> {
-                serviceInterface1InThread[0] = getServiceInterface(thread, ServiceInterface1.class);
-                serviceInterface2InThread[0] = getServiceInterface(thread, ServiceInterface2.class);
-              },
-              "threadSameThreadGroup-" + testInfo.getDisplayName());
-      threadSameThreadGroup.start();
-      SECONDS.timedJoin(threadSameThreadGroup, TIMEOUT);
-
-      Thread threadParentThreadGroup =
-          new Thread(
-              parentThreadGroup,
-              () -> {
-                serviceInterface1InThread[1] = getServiceInterface(thread, ServiceInterface1.class);
-                serviceInterface2InThread[1] = getServiceInterface(thread, ServiceInterface2.class);
-              },
-              "threadParentThreadGroup-" + testInfo.getDisplayName());
-      threadParentThreadGroup.start();
-      SECONDS.timedJoin(threadParentThreadGroup, TIMEOUT);
-
-      assertIsTestableServiceInterface1(thread, serviceInterface1);
-      assertIsTestableServiceInterface1(thread, serviceInterface1InThread[0]);
-      assertIsTestableServiceInterface1(thread, serviceInterface1InThread[1]);
-
-      assertThat(serviceInterface2).isNull();
-      assertThat(serviceInterface2InThread[0]).isNull();
-      assertThat(serviceInterface2InThread[1]).isNull();
-
-      assertIsRegisteredServiceInterface3(
-          thread, getServiceInterface(thread, ServiceInterface3.class));
-    }
-
-    @SuppressWarnings("PMD.AvoidThreadGroup")
-    @Test
-    void accessibleByMultipleThreads(TestInfo testInfo)
-        throws BrokenBarrierException, InterruptedException, TimeoutException {
-
-      Thread thread = currentThread();
-      ThreadGroup parentThreadGroup = thread.getThreadGroup().getParent();
-
-      assumeThat(parentThreadGroup).isNotNull();
-
-      CyclicBarrier allStartedGate = new CyclicBarrier(6);
-      CyclicBarrier servicesSetGate = new CyclicBarrier(6);
-
-      Thread delayedGet =
-          new Thread(
-              () ->
-                  assertTestableServiceInterface1RegistrationRunnable(
-                      currentThread(), allStartedGate, servicesSetGate),
-              "delayedGet-" + testInfo.getDisplayName());
-
-      Thread daemonGet =
-          new Thread(
-              () ->
-                  assertTestableServiceInterface1RegistrationRunnable(
-                      currentThread(), allStartedGate, servicesSetGate),
-              "daemonGet-" + testInfo.getDisplayName());
-      daemonGet.setDaemon(true);
-
-      Thread delayedInParentGroupGet =
-          new Thread(
-              parentThreadGroup,
-              () ->
-                  assertTestableServiceInterface1RegistrationRunnable(
-                      currentThread(), allStartedGate, servicesSetGate),
-              "delayedInParentGroupGet-" + testInfo.getDisplayName());
-
-      Thread daemonInParentGet =
-          new Thread(
-              parentThreadGroup,
-              () ->
-                  assertTestableServiceInterface1RegistrationRunnable(
-                      currentThread(), allStartedGate, servicesSetGate),
-              "daemonInParentGet-" + testInfo.getDisplayName());
-      daemonInParentGet.setDaemon(true);
-
-      ForkJoinTask<?> forkJoinTask =
-          commonPool()
-              .submit(
-                  () ->
-                      assertNoMockServiceRegistrationsInCommonPool(
-                          currentThread(), allStartedGate, servicesSetGate));
-
-      delayedGet.start();
-      daemonGet.start();
-      delayedInParentGroupGet.start();
-      daemonInParentGet.start();
-
-      allStartedGate.await(TIMEOUT, SECONDS);
-
-      MockServices.setServices(TestableServiceInterface1.class);
-
-      servicesSetGate.await(TIMEOUT, SECONDS);
-
-      assertTestableServiceInterface1Registration(thread);
-
-      SECONDS.timedJoin(delayedGet, TIMEOUT);
-      SECONDS.timedJoin(daemonGet, TIMEOUT);
-      SECONDS.timedJoin(delayedInParentGroupGet, TIMEOUT);
-      SECONDS.timedJoin(daemonInParentGet, TIMEOUT);
-
-      forkJoinTask.quietlyJoin();
-
-      assertTestableServiceInterface1Registration(thread);
-    }
-
-    @Test
-    void setContextClassLoaderThrowsSecurityException(TestInfo testInfo)
-        throws InterruptedException, BrokenBarrierException, TimeoutException {
-
-      CyclicBarrier gate = new CyclicBarrier(3);
-
-      AtomicBoolean called = new AtomicBoolean(false);
-
-      Thread thread = currentThread();
-
-      Thread exceptionThrowingThread =
-          new Thread(
-              () -> {
-                try {
-                  gate.await(TIMEOUT, SECONDS);
-                  MILLISECONDS.sleep(10L);
-                } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
-                  throw new IllegalStateException(e);
-                }
-              },
-              "exceptionThrowingThread-" + testInfo.getDisplayName()) {
-
-            @Override
-            public void setContextClassLoader(ClassLoader cl) {
-              called.compareAndSet(false, true);
-              throw new SecurityException();
-            }
-          };
-
-      Thread setServicesThread =
-          new Thread(
-              () -> {
-                try {
-                  gate.await(TIMEOUT, SECONDS);
-                  MockServices.setServices(TestableServiceInterface1.class);
-                } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
-                  throw new IllegalStateException(e);
-                }
-              },
-              "setServicesThread-" + testInfo.getDisplayName());
-
-      assumeThat(getServiceInterface(thread, ServiceInterface1.class)).isNull();
-
-      exceptionThrowingThread.start();
-      setServicesThread.start();
-
-      gate.await(TIMEOUT, SECONDS);
-
-      SECONDS.timedJoin(exceptionThrowingThread, TIMEOUT);
-      SECONDS.timedJoin(setServicesThread, TIMEOUT);
-
-      assertThat(called).isTrue();
-
-      assertIsTestableServiceInterface1(
-          thread, getServiceInterface(thread, ServiceInterface1.class));
-
-      assertThat(getServiceInterface(thread, ServiceInterface2.class)).isNull();
-    }
-
-    @Test
-    void returnsResource() throws IOException {
-      MockServices.setServices(TestableServiceInterface1.class);
-
-      String serviceInterface1Name = ServiceInterface1.class.getName();
-
-      URL resource =
-          currentThread()
-              .getContextClassLoader()
-              .getResource("META-INF/services/" + serviceInterface1Name);
-
-      assertThat(resource).isNotNull();
-      assertThat(resource.toExternalForm()).endsWith(serviceInterface1Name);
-
-      URLConnection urlConnection = resource.openConnection();
-
-      urlConnection.connect();
-
-      try (InputStream inputStream = urlConnection.getInputStream()) {
-        assertThat(inputStream.available()).isGreaterThan(0);
-      }
-    }
-
-    @Test
-    void returnsNoResource() {
-      MockServices.setServices(TestableServiceInterface1.class);
-
-      assertThat(currentThread().getContextClassLoader().getResource("META-INF/MANIFEST2.MF"))
-          .isNull();
-    }
-
-    @Test
-    void returnsNoService() {
-      MockServices.setServices(TestableServiceInterface1.class);
-
-      assertThat(currentThread().getContextClassLoader().getResource("META-INF/services/x"))
-          .isNull();
-    }
+  @AfterEach
+  void afterEach() {
+    MockServices.setServicesForCurrentThread();
   }
 
+  @ExtendWith(WithThreadExtension.class)
   @Nested
   class SetServicesForThread {
 
-    private Thread thread;
-
-    @BeforeEach
-    void beforeEach(TestInfo testInfo) {
-      thread =
-          new Thread(
-              () -> {
-                while (!currentThread().isInterrupted()) {
-                  try {
-                    MILLISECONDS.sleep(10L);
-                  } catch (InterruptedException e) {
-                    // allow thread to exit
-                  }
-                }
-              },
-              testInfo.getDisplayName());
-      thread.start();
-    }
-
-    @AfterEach
-    void afterEach() {
-      thread.interrupt();
-    }
-
     @Test
-    void withThreadNull() {
+    void withThreadNull(@WithThread Thread thread) {
       assertThrows(
           NullPointerException.class, () -> MockServices.setServicesForThread(null), "thread");
 
@@ -403,7 +62,7 @@ class MockServicesTest {
     }
 
     @Test
-    void withServicesNull() {
+    void withServicesNull(@WithThread Thread thread) {
       assertThrows(
           NullPointerException.class,
           () -> MockServices.setServicesForThread(thread, (Class<?>[]) null),
@@ -413,7 +72,7 @@ class MockServicesTest {
     }
 
     @Test
-    void withClassHavingNonPublicNoArgCtor() {
+    void withClassHavingNonPublicNoArgCtor(@WithThread Thread thread) {
       assertThrows(
           IllegalArgumentException.class,
           () ->
@@ -424,7 +83,7 @@ class MockServicesTest {
     }
 
     @Test
-    void withAbstractClass() {
+    void withAbstractClass(@WithThread Thread thread) {
       assertThrows(
           IllegalArgumentException.class,
           () -> MockServices.setServicesForThread(thread, AbstractServiceInterface1.class),
@@ -434,7 +93,7 @@ class MockServicesTest {
     }
 
     @Test
-    void withNonPublicClass() {
+    void withNonPublicClass(@WithThread Thread thread) {
       assertThrows(
           IllegalArgumentException.class,
           () -> MockServices.setServicesForThread(thread, NonPublicServiceInterface1.class),
@@ -444,8 +103,8 @@ class MockServicesTest {
     }
 
     @Test
-    void clearsServices() {
-      MockServices.setServices(TestableServiceInterface1.class);
+    void clearsServices(@WithThread Thread thread) {
+      MockServices.setServicesForThread(thread, TestableServiceInterface1.class);
 
       assumeThat(getServiceInterface(thread, ServiceInterface1.class)).isNotNull();
 
@@ -455,7 +114,7 @@ class MockServicesTest {
     }
 
     @Test
-    void returnsOne() {
+    void returnsOne(@WithThread Thread thread) {
       MockServices.setServicesForThread(thread, TestableServiceInterface1.class);
 
       assertTestableServiceInterface1Registration(thread);
@@ -465,7 +124,7 @@ class MockServicesTest {
     }
 
     @Test
-    void returnsSeveral() {
+    void returnsSeveral(@WithThread Thread thread) {
       MockServices.setServicesForThread(
           thread, TestableServiceInterface2.class, TestableServiceInterface1.class);
 
@@ -478,12 +137,12 @@ class MockServicesTest {
     }
 
     @Test
-    void returnsRegistered() {
+    void returnsRegistered(@WithThread Thread thread) {
       assertNoMockServiceRegistrations(thread);
     }
 
     @Test
-    void returnsRegistedLast() {
+    void returnsRegistedLast(@WithThread Thread thread) {
       MockServices.setServicesForThread(thread, TestableServiceInterface3.class);
 
       Iterator<ServiceInterface3> providers = getServiceProviders(thread, ServiceInterface3.class);
@@ -499,8 +158,6 @@ class MockServicesTest {
     void accessibleOnlyByThread(TestInfo testInfo)
         throws BrokenBarrierException, InterruptedException, TimeoutException {
 
-      MockServices.setServices(TestableServiceInterface1Negative.class);
-
       CyclicBarrier allStartedGate = new CyclicBarrier(7);
       CyclicBarrier servicesSetGate = new CyclicBarrier(7);
 
@@ -510,7 +167,7 @@ class MockServicesTest {
                 Thread inheritedGet =
                     new Thread(
                         () ->
-                            assertTestableServiceInterface1NegativeRegistrationRunnable(
+                            assertNoMockServiceRegistrationsRunnable(
                                 currentThread(), allStartedGate, servicesSetGate),
                         "inheritedGet-" + testInfo.getDisplayName());
                 inheritedGet.start();
@@ -527,7 +184,7 @@ class MockServicesTest {
                   inheritedGet.interrupt();
                 }
               },
-              testInfo.getDisplayName());
+              "threadWithInherited-" + testInfo.getDisplayName());
       threadWithInherited.start();
 
       try {
@@ -535,19 +192,17 @@ class MockServicesTest {
 
         assumeThat(parentThreadGroup).isNotNull();
 
-        assertTestableServiceInterface1NegativeRegistration(threadWithInherited);
-
         Thread delayedGet =
             new Thread(
                 () ->
-                    assertTestableServiceInterface1NegativeRegistrationRunnable(
+                    assertNoMockServiceRegistrationsRunnable(
                         currentThread(), allStartedGate, servicesSetGate),
                 "delayedGet-" + testInfo.getDisplayName());
 
         Thread daemonGet =
             new Thread(
                 () ->
-                    assertTestableServiceInterface1NegativeRegistrationRunnable(
+                    assertNoMockServiceRegistrationsRunnable(
                         currentThread(), allStartedGate, servicesSetGate),
                 "daemonGet-" + testInfo.getDisplayName());
         daemonGet.setDaemon(true);
@@ -556,7 +211,7 @@ class MockServicesTest {
             new Thread(
                 parentThreadGroup,
                 () ->
-                    assertTestableServiceInterface1NegativeRegistrationRunnable(
+                    assertNoMockServiceRegistrationsRunnable(
                         currentThread(), allStartedGate, servicesSetGate),
                 "delayedInParentGroupGet-" + testInfo.getDisplayName());
 
@@ -564,7 +219,7 @@ class MockServicesTest {
             new Thread(
                 parentThreadGroup,
                 () ->
-                    assertTestableServiceInterface1NegativeRegistrationRunnable(
+                    assertNoMockServiceRegistrationsRunnable(
                         currentThread(), allStartedGate, servicesSetGate),
                 "daemonInParentGet-" + testInfo.getDisplayName());
         daemonInParentGet.setDaemon(true);
@@ -583,12 +238,14 @@ class MockServicesTest {
 
         allStartedGate.await(TIMEOUT, SECONDS);
 
+        assertNoMockServiceRegistrations(threadWithInherited);
+
         MockServices.setServicesForThread(threadWithInherited, TestableServiceInterface1.class);
 
         servicesSetGate.await(TIMEOUT, SECONDS);
 
         assertTestableServiceInterface1Registration(threadWithInherited);
-        assertTestableServiceInterface1NegativeRegistration(currentThread());
+        assertNoMockServiceRegistrations(currentThread());
 
         SECONDS.timedJoin(delayedGet, TIMEOUT);
         SECONDS.timedJoin(daemonGet, TIMEOUT);
@@ -639,7 +296,7 @@ class MockServicesTest {
     }
 
     @Test
-    void returnsResource() throws IOException {
+    void returnsResource(@WithThread Thread thread) throws IOException {
       MockServices.setServicesForThread(thread, TestableServiceInterface1.class);
 
       String serviceInterface1Name = ServiceInterface1.class.getName();
@@ -660,14 +317,14 @@ class MockServicesTest {
     }
 
     @Test
-    void returnsNoResource() {
+    void returnsNoResource(@WithThread Thread thread) {
       MockServices.setServicesForThread(thread, TestableServiceInterface1.class);
 
       assertThat(thread.getContextClassLoader().getResource("META-INF/MANIFEST2.MF")).isNull();
     }
 
     @Test
-    void returnsNoService() {
+    void returnsNoService(@WithThread Thread thread) {
       MockServices.setServicesForThread(thread, TestableServiceInterface1.class);
 
       assertThat(thread.getContextClassLoader().getResource("META-INF/services/x")).isNull();
@@ -719,7 +376,7 @@ class MockServicesTest {
 
     @Test
     void clearsServices() {
-      MockServices.setServices(TestableServiceInterface1.class);
+      MockServices.setServicesForThread(currentThread(), TestableServiceInterface1.class);
 
       Thread thread = currentThread();
 
@@ -781,8 +438,6 @@ class MockServicesTest {
     void accessibleOnlyByCurrentThread(TestInfo testInfo)
         throws BrokenBarrierException, InterruptedException, TimeoutException {
 
-      MockServices.setServices(TestableServiceInterface1Negative.class);
-
       CyclicBarrier allStartedGate = new CyclicBarrier(6);
       CyclicBarrier servicesSetGate = new CyclicBarrier(6);
 
@@ -790,19 +445,17 @@ class MockServicesTest {
 
       assumeThat(parentThreadGroup).isNotNull();
 
-      assertTestableServiceInterface1NegativeRegistration(currentThread());
-
       Thread delayedGet =
           new Thread(
               () ->
-                  assertTestableServiceInterface1NegativeRegistrationRunnable(
+                  assertNoMockServiceRegistrationsRunnable(
                       currentThread(), allStartedGate, servicesSetGate),
               "delayedGet-" + testInfo.getDisplayName());
 
       Thread daemonGet =
           new Thread(
               () ->
-                  assertTestableServiceInterface1NegativeRegistrationRunnable(
+                  assertNoMockServiceRegistrationsRunnable(
                       currentThread(), allStartedGate, servicesSetGate),
               "daemonGet-" + testInfo.getDisplayName());
       daemonGet.setDaemon(true);
@@ -811,7 +464,7 @@ class MockServicesTest {
           new Thread(
               parentThreadGroup,
               () ->
-                  assertTestableServiceInterface1NegativeRegistrationRunnable(
+                  assertNoMockServiceRegistrationsRunnable(
                       currentThread(), allStartedGate, servicesSetGate),
               "delayedInParentGroupGet-" + testInfo.getDisplayName());
 
@@ -819,7 +472,7 @@ class MockServicesTest {
           new Thread(
               parentThreadGroup,
               () ->
-                  assertTestableServiceInterface1NegativeRegistrationRunnable(
+                  assertNoMockServiceRegistrationsRunnable(
                       currentThread(), allStartedGate, servicesSetGate),
               "daemonInParentGet-" + testInfo.getDisplayName());
       daemonInParentGet.setDaemon(true);
@@ -837,6 +490,8 @@ class MockServicesTest {
       daemonInParentGet.start();
 
       allStartedGate.await(TIMEOUT, SECONDS);
+
+      assertNoMockServiceRegistrations(currentThread());
 
       MockServices.setServicesForCurrentThread(TestableServiceInterface1.class);
 
@@ -924,10 +579,10 @@ class MockServicesTest {
 
     @Test
     void withRunnableNull() {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -949,10 +604,10 @@ class MockServicesTest {
 
     @Test
     void withServicesNull() {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -972,10 +627,10 @@ class MockServicesTest {
 
     @Test
     void clearsServices() {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -984,8 +639,10 @@ class MockServicesTest {
 
       MockServices.withServicesForRunnableInCurrentThread(
           () -> {
-            assertThat(getServiceInterface(thread, ServiceInterface1.class)).isNull();
-            assertThat(getServiceInterface(thread, ServiceInterface2.class)).isNull();
+            Thread threadWithin = currentThread();
+
+            assertThat(getServiceInterface(threadWithin, ServiceInterface1.class)).isNull();
+            assertThat(getServiceInterface(threadWithin, ServiceInterface2.class)).isNull();
           });
 
       assertIsTestableServiceInterface1Negative(
@@ -996,36 +653,10 @@ class MockServicesTest {
 
     @Test
     void returnsOne() {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
 
-      assertIsTestableServiceInterface1Negative(
-          thread, getServiceInterface(thread, ServiceInterface1.class));
-      assertIsTestableServiceInterface2Negative(
-          thread, getServiceInterface(thread, ServiceInterface2.class));
-
-      MockServices.withServicesForRunnableInCurrentThread(
-          () -> {
-            assertIsTestableServiceInterface1(
-                currentThread(), getServiceInterface(thread, ServiceInterface1.class));
-            assertThat(getServiceInterface(thread, ServiceInterface2.class)).isNull();
-          },
-          TestableServiceInterface1.class);
-
-      assertIsTestableServiceInterface1Negative(
-          thread, getServiceInterface(thread, ServiceInterface1.class));
-      assertIsTestableServiceInterface2Negative(
-          thread, getServiceInterface(thread, ServiceInterface2.class));
-    }
-
-    @Test
-    void returnsSeveral() {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
-      Thread thread = currentThread();
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1037,9 +668,37 @@ class MockServicesTest {
             Thread threadWithin = currentThread();
 
             assertIsTestableServiceInterface1(
-                threadWithin, getServiceInterface(thread, ServiceInterface1.class));
+                threadWithin, getServiceInterface(threadWithin, ServiceInterface1.class));
+            assertThat(getServiceInterface(threadWithin, ServiceInterface2.class)).isNull();
+          },
+          TestableServiceInterface1.class);
+
+      assertIsTestableServiceInterface1Negative(
+          thread, getServiceInterface(thread, ServiceInterface1.class));
+      assertIsTestableServiceInterface2Negative(
+          thread, getServiceInterface(thread, ServiceInterface2.class));
+    }
+
+    @Test
+    void returnsSeveral() {
+      Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
+
+      assertIsTestableServiceInterface1Negative(
+          thread, getServiceInterface(thread, ServiceInterface1.class));
+      assertIsTestableServiceInterface2Negative(
+          thread, getServiceInterface(thread, ServiceInterface2.class));
+
+      MockServices.withServicesForRunnableInCurrentThread(
+          () -> {
+            Thread threadWithin = currentThread();
+
+            assertIsTestableServiceInterface1(
+                threadWithin, getServiceInterface(threadWithin, ServiceInterface1.class));
             assertIsTestableServiceInterface2(
-                threadWithin, getServiceInterface(thread, ServiceInterface2.class));
+                threadWithin, getServiceInterface(threadWithin, ServiceInterface2.class));
           },
           TestableServiceInterface1.class,
           TestableServiceInterface2.class);
@@ -1052,10 +711,10 @@ class MockServicesTest {
 
     @Test
     void returnsRegistered() {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1065,9 +724,12 @@ class MockServicesTest {
           thread, getServiceInterface(thread, ServiceInterface3.class));
 
       MockServices.withServicesForRunnableInCurrentThread(
-          () ->
-              assertIsRegisteredServiceInterface3(
-                  currentThread(), getServiceInterface(thread, ServiceInterface3.class)));
+          () -> {
+            Thread threadWithin = currentThread();
+
+            assertIsRegisteredServiceInterface3(
+                threadWithin, getServiceInterface(threadWithin, ServiceInterface3.class));
+          });
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1079,12 +741,13 @@ class MockServicesTest {
 
     @Test
     void returnsRegisteredOverwritingExisting() {
-      MockServices.setServices(
+      Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread,
           TestableServiceInterface1Negative.class,
           TestableServiceInterface2Negative.class,
           TestableServiceInterface3Negative.class);
-
-      Thread thread = currentThread();
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1093,9 +756,12 @@ class MockServicesTest {
       assertRegisteredService3Interfaces(thread);
 
       MockServices.withServicesForRunnableInCurrentThread(
-          () ->
-              assertIsRegisteredServiceInterface3(
-                  currentThread(), getServiceInterface(thread, ServiceInterface3.class)));
+          () -> {
+            Thread threadWithin = currentThread();
+
+            assertIsRegisteredServiceInterface3(
+                threadWithin, getServiceInterface(threadWithin, ServiceInterface3.class));
+          });
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1106,10 +772,10 @@ class MockServicesTest {
 
     @Test
     void returnsRegistedLast() {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1132,12 +798,13 @@ class MockServicesTest {
 
     @Test
     void returnsRegistedLastOverwritinigExisting() {
-      MockServices.setServices(
+      Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread,
           TestableServiceInterface1Negative.class,
           TestableServiceInterface2Negative.class,
           TestableServiceInterface3Negative.class);
-
-      Thread thread = currentThread();
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1160,9 +827,9 @@ class MockServicesTest {
     void setContextClassLoaderThrowsSecurityException(TestInfo testInfo)
         throws InterruptedException {
 
-      MockServices.setServices(TestableServiceInterface1Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(thread, TestableServiceInterface1Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1173,10 +840,13 @@ class MockServicesTest {
           new Thread(
               () ->
                   MockServices.withServicesForRunnableInCurrentThread(
-                      () ->
-                          assertIsTestableServiceInterface1Negative(
-                              currentThread(),
-                              getServiceInterface(thread, ServiceInterface1.class)),
+                      () -> {
+                        Thread threadWithin = currentThread();
+
+                        assertIsTestableServiceInterface1Negative(
+                            threadWithin,
+                            getServiceInterface(threadWithin, ServiceInterface1.class));
+                      },
                       TestableServiceInterface1.class),
               "setServicesThread-" + testInfo.getDisplayName()) {
 
@@ -1208,7 +878,7 @@ class MockServicesTest {
 
       assumeThat(parentThreadGroup).isNotNull();
 
-      MockServices.setServices(TestableServiceInterface1Negative.class);
+      MockServices.setServicesForThread(thread, TestableServiceInterface1Negative.class);
 
       assertTestableServiceInterface1NegativeRegistration(thread);
 
@@ -1334,10 +1004,10 @@ class MockServicesTest {
 
     @Test
     void withCallableNull() {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1359,10 +1029,10 @@ class MockServicesTest {
 
     @Test
     void withServicesNull() {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1382,10 +1052,10 @@ class MockServicesTest {
 
     @Test
     void clearsServices() throws Exception {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1394,8 +1064,10 @@ class MockServicesTest {
 
       MockServices.withServicesForCallableInCurrentThread(
           () -> {
-            assertThat(getServiceInterface(thread, ServiceInterface1.class)).isNull();
-            assertThat(getServiceInterface(thread, ServiceInterface2.class)).isNull();
+            Thread threadWithin = currentThread();
+
+            assertThat(getServiceInterface(threadWithin, ServiceInterface1.class)).isNull();
+            assertThat(getServiceInterface(threadWithin, ServiceInterface2.class)).isNull();
 
             return null;
           });
@@ -1408,10 +1080,10 @@ class MockServicesTest {
 
     @Test
     void returnsOne() throws Exception {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1420,9 +1092,11 @@ class MockServicesTest {
 
       MockServices.withServicesForCallableInCurrentThread(
           () -> {
+            Thread threadWithin = currentThread();
+
             assertIsTestableServiceInterface1(
-                currentThread(), getServiceInterface(thread, ServiceInterface1.class));
-            assertThat(getServiceInterface(thread, ServiceInterface2.class)).isNull();
+                threadWithin, getServiceInterface(threadWithin, ServiceInterface1.class));
+            assertThat(getServiceInterface(threadWithin, ServiceInterface2.class)).isNull();
 
             return null;
           },
@@ -1436,10 +1110,10 @@ class MockServicesTest {
 
     @Test
     void returnsSeveral() throws Exception {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1451,9 +1125,9 @@ class MockServicesTest {
             Thread threadWithin = currentThread();
 
             assertIsTestableServiceInterface1(
-                threadWithin, getServiceInterface(thread, ServiceInterface1.class));
+                threadWithin, getServiceInterface(threadWithin, ServiceInterface1.class));
             assertIsTestableServiceInterface2(
-                threadWithin, getServiceInterface(thread, ServiceInterface2.class));
+                threadWithin, getServiceInterface(threadWithin, ServiceInterface2.class));
 
             return null;
           },
@@ -1468,10 +1142,10 @@ class MockServicesTest {
 
     @Test
     void returnsRegistered() throws Exception {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1482,8 +1156,10 @@ class MockServicesTest {
 
       MockServices.withServicesForCallableInCurrentThread(
           () -> {
+            Thread threadWithin = currentThread();
+
             assertIsRegisteredServiceInterface3(
-                currentThread(), getServiceInterface(thread, ServiceInterface3.class));
+                threadWithin, getServiceInterface(threadWithin, ServiceInterface3.class));
 
             return null;
           });
@@ -1498,12 +1174,13 @@ class MockServicesTest {
 
     @Test
     void returnsRegisteredOverwritingExisting() throws Exception {
-      MockServices.setServices(
+      Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread,
           TestableServiceInterface1Negative.class,
           TestableServiceInterface2Negative.class,
           TestableServiceInterface3Negative.class);
-
-      Thread thread = currentThread();
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1513,8 +1190,10 @@ class MockServicesTest {
 
       MockServices.withServicesForCallableInCurrentThread(
           () -> {
+            Thread threadWithin = currentThread();
+
             assertIsRegisteredServiceInterface3(
-                currentThread(), getServiceInterface(thread, ServiceInterface3.class));
+                threadWithin, getServiceInterface(threadWithin, ServiceInterface3.class));
 
             return null;
           });
@@ -1528,10 +1207,10 @@ class MockServicesTest {
 
     @Test
     void returnsRegistedLast() throws Exception {
-      MockServices.setServices(
-          TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread, TestableServiceInterface1Negative.class, TestableServiceInterface2Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1554,12 +1233,13 @@ class MockServicesTest {
 
     @Test
     void returnsRegistedLastOverwritinigExisting() throws Exception {
-      MockServices.setServices(
+      Thread thread = currentThread();
+
+      MockServices.setServicesForThread(
+          thread,
           TestableServiceInterface1Negative.class,
           TestableServiceInterface2Negative.class,
           TestableServiceInterface3Negative.class);
-
-      Thread thread = currentThread();
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1582,9 +1262,9 @@ class MockServicesTest {
     void setContextClassLoaderThrowsSecurityException(TestInfo testInfo)
         throws InterruptedException {
 
-      MockServices.setServices(TestableServiceInterface1Negative.class);
-
       Thread thread = currentThread();
+
+      MockServices.setServicesForThread(thread, TestableServiceInterface1Negative.class);
 
       assertIsTestableServiceInterface1Negative(
           thread, getServiceInterface(thread, ServiceInterface1.class));
@@ -1597,8 +1277,11 @@ class MockServicesTest {
                 try {
                   MockServices.withServicesForCallableInCurrentThread(
                       () -> {
+                        Thread threadWithin = currentThread();
+
                         assertIsTestableServiceInterface1Negative(
-                            currentThread(), getServiceInterface(thread, ServiceInterface1.class));
+                            threadWithin,
+                            getServiceInterface(threadWithin, ServiceInterface1.class));
 
                         return null;
                       },
@@ -1636,7 +1319,7 @@ class MockServicesTest {
 
       assumeThat(parentThreadGroup).isNotNull();
 
-      MockServices.setServices(TestableServiceInterface1Negative.class);
+      MockServices.setServicesForThread(thread, TestableServiceInterface1Negative.class);
 
       assertTestableServiceInterface1NegativeRegistration(thread);
 
@@ -1752,11 +1435,6 @@ class MockServicesTest {
 
       assertTestableServiceInterface1NegativeRegistration(thread);
     }
-  }
-
-  @AfterEach
-  void tearDown() {
-    MockServices.setServices();
   }
 
   private static final long TIMEOUT = 10L;
@@ -1894,19 +1572,6 @@ class MockServicesTest {
     return null;
   }
 
-  private static void assertTestableServiceInterface1RegistrationRunnable(
-      Thread thread, CyclicBarrier allStartedGate, CyclicBarrier servicesSetGate) {
-
-    try {
-      allStartedGate.await(TIMEOUT, SECONDS);
-      servicesSetGate.await(TIMEOUT, SECONDS);
-
-      assertTestableServiceInterface1Registration(thread);
-    } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
   private static void assertTestableServiceInterface1NegativeRegistrationRunnable(
       Thread thread, CyclicBarrier allStartedGate, CyclicBarrier servicesSetGate) {
 
@@ -1915,6 +1580,19 @@ class MockServicesTest {
       servicesSetGate.await(TIMEOUT, SECONDS);
 
       assertTestableServiceInterface1NegativeRegistration(thread);
+    } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private static void assertNoMockServiceRegistrationsRunnable(
+      Thread thread, CyclicBarrier allStartedGate, CyclicBarrier servicesSetGate) {
+
+    try {
+      allStartedGate.await(TIMEOUT, SECONDS);
+      servicesSetGate.await(TIMEOUT, SECONDS);
+
+      assertNoMockServiceRegistrations(thread);
     } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
       throw new IllegalStateException(e);
     }

@@ -63,6 +63,21 @@ repositories {
   jcenter()
 }
 
+sourceSets {
+  forkedVmTest {
+    java.srcDir project.file('src/forked-vm-test/java')
+    resources.srcDir project.file('src/forked-vm-test/resources')
+    compileClasspath += sourceSets.main.output + sourceSets.test.output
+    runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+  }
+}
+
+configurations {
+  forkedVmTestImplementation.extendsFrom testImplementation
+
+  forkedVmTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
 dependencies {
   signature "org.codehaus.mojo.signature:java18:${java8SignatureVersion}@signature"
   errorprone "com.google.errorprone:error_prone_core:${errorproneVersion}"
@@ -125,6 +140,30 @@ tasks.named('jar').configure {
   exclude('rebel.xml')
 }
 
+tasks.named('test').configure {
+  systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
+
+  maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+
+  // TODO: https://github.com/gradle/gradle/issues/6453
+  forkEvery = 1
+  //
+}
+
+tasks.register('forkedVmTest', Test) {
+  group LifecycleBasePlugin.VERIFICATION_GROUP
+  description 'Runs the forked VM tests.'
+
+  testClassesDirs = sourceSets.forkedVmTest.output.classesDirs
+  classpath = sourceSets.forkedVmTest.runtimeClasspath
+
+  systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
+
+  forkEvery = 1
+
+  shouldRunAfter tasks.test
+}
+
 tasks.withType(Test).configureEach {
   useJUnitPlatform()
 
@@ -133,21 +172,18 @@ tasks.withType(Test).configureEach {
   systemProperty 'user.country', System.properties['user.country']
   systemProperty 'java.awt.headless', 'true'
 
-  maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
-
-  // TODO: https://github.com/gradle/gradle/issues/6453
-  forkEvery = 1
-  //
-
   failFast = true
 
   reports.junitXml.enabled = false
   reports.html.enabled = project.hasProperty('createReports')
+  reports.html.destination = file("${reporting.baseDir}/${name}")
 
   testLogging {
     exceptionFormat = 'full'
   }
 }
+
+check.dependsOn forkedVmTest
 
 spotless {
   format 'misc', {
@@ -256,7 +292,7 @@ jacoco {
 if (project.hasProperty('createReports')) {
 
   jacocoTestReport {
-    executionData test
+    executionData test, forkedVmTest
     reports {
       xml.enabled false
       html.enabled project.hasProperty('createReports')
@@ -265,6 +301,7 @@ if (project.hasProperty('createReports')) {
   }
 
   jacocoTestReport.dependsOn test
+  jacocoTestReport.dependsOn forkedVmTest
   check.dependsOn jacocoTestReport
 }
 

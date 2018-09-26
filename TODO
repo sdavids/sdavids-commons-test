@@ -2,6 +2,9 @@ Plugin Issues:
   - https://github.com/bintray/gradle-bintray-plugin/issues/255
   - https://github.com/spotbugs/spotbugs/issues/498
 
+Gradle Issues:
+ - https://github.com/gradle/gradle/issues/6453
+
 Gradle 5:
  - remove enableFeaturePreview from settings.gradle
  - publishing.publications.mavenJava.pom.name
