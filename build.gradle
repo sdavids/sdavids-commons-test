@@ -25,7 +25,7 @@ plugins {
   id 'pmd'
   id 'jacoco'
   id 'net.nemerosa.versioning' version '2.7.1'
-  id 'com.diffplug.gradle.spotless' version '3.14.0'
+  id 'com.diffplug.gradle.spotless' version '3.15.0'
   id 'net.ltgt.errorprone' version '0.6'
   id 'de.thetaphi.forbiddenapis' version '2.6'
   id 'com.github.spotbugs' version '1.6.3'
