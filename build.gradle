@@ -52,7 +52,8 @@ ext {
   vendor = 'Sebastian Davids'
 
   javadocLinks = [
-      'http://docs.oracle.com/javase/8/docs/api/'
+      'https://docs.oracle.com/javase/8/docs/api/',
+      'https://apiguardian-team.github.io/apiguardian/docs/1.0.0/api/'
   ] as String[]
 }
 
