@@ -50,6 +50,7 @@ ext {
   assertjVersion = '3.11.1'
 
   vendor = 'Sebastian Davids'
+  inceptionYear = '2017'
 
   javadocLinks = [
       'https://docs.oracle.com/javase/8/docs/api/',
@@ -59,10 +60,9 @@ ext {
 
 group 'io.sdavids.commons.test'
 version = '2.1.0'
+description = 'Utility methods and classes for writing tests.'
 
-repositories {
-  jcenter()
-}
+repositories.jcenter()
 
 sourceSets {
   forkedVmTest {
@@ -126,14 +126,14 @@ tasks.named('jar').configure {
         'Build-Revision': versioning.info.commit,
         'Specification-Title': project.name,
         'Specification-Version': project.version,
-        'Specification-Vendor': project.vendor,
+        'Specification-Vendor': project.ext.vendor,
         'Implementation-Title': project.name,
         'Implementation-Version': "${project.version}-${versioning.info.build}",
-        'Implementation-Vendor': project.vendor,
-        'Automatic-Module-Name': project.rootPackageName
+        'Implementation-Vendor': project.ext.vendor,
+        'Automatic-Module-Name': project.ext.rootPackageName
     )
   }
-  from("${project.rootDir}") {
+  from("${project.projectDir}") {
     include 'NOTICE'
     include 'LICENSE'
     into 'META-INF'
@@ -187,6 +187,13 @@ tasks.withType(Test).configureEach {
 check.dependsOn forkedVmTest
 
 spotless {
+  java {
+    googleJavaFormat '1.6'
+    licenseHeaderFile 'gradle/conf/spotless-license-java.txt'
+  }
+  groovyGradle {
+    target 'build.gradle', 'settings.gradle'
+  }
   format 'misc', {
     target '.gitattributes', '.gitignore',
         'README.adoc',
@@ -214,13 +221,6 @@ spotless {
     trimTrailingWhitespace()
     endWithNewline()
   }
-  java {
-    googleJavaFormat '1.6'
-    licenseHeaderFile "${project.projectDir}/gradle/conf/spotless-license-java.txt"
-  }
-  groovyGradle {
-    target 'build.gradle', 'settings.gradle'
-  }
 }
 
 tasks.named('javadoc').configure {
@@ -229,7 +229,7 @@ tasks.named('javadoc').configure {
   options.memberLevel = 'PROTECTED'
   options.header = "${project.name} ${project.version}"
   options.docTitle = "${project.name} API"
-  options.links = javadocLinks
+  options.links = project.ext.javadocLinks
   options.noTimestamp = true
   options.addBooleanOption('Xdoclint:all', true)
   if (JavaVersion.current().isJava9Compatible()) {
@@ -260,7 +260,7 @@ tasks.withType(CheckForbiddenApis).configureEach {
 
 tasks.withType(Checkstyle).configureEach {
   configFile = project.file('gradle/conf/checkstyle.xml')
-  configDir = project.provider({ project.file('gradle/conf/') })
+  configDir = project.provider({ project.file('gradle/conf') })
   maxWarnings = 0
   reports {
     xml.enabled false
@@ -301,7 +301,7 @@ if (project.hasProperty('createReports')) {
     reports {
       xml.enabled false
       html.enabled project.hasProperty('createReports')
-      html.destination project.file("${buildDir}/reports/jacoco")
+      html.destination project.file("${project.buildDir}/reports/jacoco")
     }
   }
 
@@ -339,10 +339,10 @@ if (project.hasProperty('release')) {
           'Build-Revision': versioning.info.commit,
           'Specification-Title': project.name,
           'Specification-Version': project.version,
-          'Specification-Vendor': project.vendor,
+          'Specification-Vendor': project.ext.vendor,
           'Implementation-Title': project.name,
           'Implementation-Version': "${project.version}-${versioning.info.build}",
-          'Implementation-Vendor': project.vendor
+          'Implementation-Vendor': project.ext.vendor
       )
     }
     from javadoc.destinationDir
@@ -359,10 +359,10 @@ if (project.hasProperty('release')) {
           'Build-Revision': versioning.info.commit,
           'Specification-Title': project.name,
           'Specification-Version': project.version,
-          'Specification-Vendor': project.vendor,
+          'Specification-Vendor': project.ext.vendor,
           'Implementation-Title': project.name,
           'Implementation-Version': "${project.version}-${versioning.info.build}",
-          'Implementation-Vendor': project.vendor
+          'Implementation-Vendor': project.ext.vendor
       )
     }
     from sourceSets.main.allSource exclude 'rebel.xml'
@@ -378,13 +378,12 @@ if (project.hasProperty('release')) {
         from components.java
         artifact sourcesJar
         artifact javadocJar
+        // TODO: use "${project.name}"
         pom {
-          // TODO: name = "${project.name}"
-          name = 'sdavids-commons-test'
-          //
-          description = 'Utility methods and classes for writing tests.'
+          name = project.name
+          description = project.description
           url = 'https://github.com/sdavids/sdavids-commons-test'
-          inceptionYear = '2017'
+          inceptionYear = project.ext.inceptionYear
           licenses {
             license {
               name = 'Apache License, Version 2.0'
@@ -410,6 +409,7 @@ if (project.hasProperty('release')) {
             url = 'https://github.com/sdavids/sdavids-commons-test/issues'
           }
         }
+        //
       }
     }
   }
@@ -424,10 +424,10 @@ if (project.hasProperty('release')) {
     publications = ['mavenJava']
     // TODO: https://github.com/bintray/gradle-bintray-plugin/issues/255
     filesSpec {
-      from("${buildDir}/libs") {
+      from("${project.buildDir}/libs") {
         include '*.jar.asc'
       }
-      from("${buildDir}/publications/mavenJava") {
+      from("${project.buildDir}/publications/mavenJava") {
         include 'pom-default.xml.asc'
         rename 'pom-default.xml.asc', "${project.name}-${project.version}.pom.asc"
       }
@@ -436,12 +436,12 @@ if (project.hasProperty('release')) {
     //
     pkg {
       repo = 'sdavids'
-      name = 'sdavids-commons-test'
+      name = project.name
       licenses = ['Apache-2.0']
-      websiteUrl = 'https://github.com/sdavids/sdavids-commons-test'
-      issueTrackerUrl = 'https://github.com/sdavids/sdavids-commons-test/issues'
-      vcsUrl = 'https://github.com/sdavids/sdavids-commons-test.git'
-      githubRepo = 'sdavids/sdavids-commons-test'
+      websiteUrl = "https://github.com/sdavids/${project.name}"
+      issueTrackerUrl = "https://github.com/sdavids/${project.name}/issues"
+      vcsUrl = "https://github.com/sdavids/${project.name}.git"
+      githubRepo = "sdavids/${project.name}"
       publicDownloadNumbers = true
       version {
         name = "${project.version}"
